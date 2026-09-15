@@ -5,6 +5,8 @@ const topics = [
     title: "Variables",
     description: "Watch a value get stored in a variable.",
     editable: true,
+    buildSteps: buildVariableSteps,
+    editorHint: "Try changing the variable name or value, then click Apply changes.",
     defaultCode: "x = 5\nprint(x)",
     steps: []
   },
@@ -13,13 +15,11 @@ const topics = [
     category: "BASICS",
     title: "Multiple Variables",
     description: "See multiple values exist in program state at the same time.",
-    editable: false,
+    editable: true,
+    buildSteps: buildMultipleVariableSteps,
+    editorHint: "Try changing the variable names or values, then click Apply changes.",
     defaultCode: 'name = "Maya"\nage = 24\nprint(name, age)',
-    steps: [
-      { line: 1, explanation: 'The string "Maya" is stored in name.', variables: { name: '"Maya"' }, execution: 'name ← "Maya"', output: "" },
-      { line: 2, explanation: "A second variable, age, is created with the integer 24.", variables: { name: '"Maya"', age: "24" }, execution: "age ← 24", output: "" },
-      { line: 3, explanation: "Python reads both variables and prints them.", variables: { name: '"Maya"', age: "24" }, execution: "Read name\nRead age\nCall print()", output: "Maya 24" }
-    ]
+    steps: []
   },
   {
     id: "arithmetic",
@@ -102,6 +102,7 @@ const currentLineBadge = document.getElementById("currentLineBadge");
 const explanationCard = document.getElementById("explanationCard");
 const variablesView = document.getElementById("variablesView");
 const objectViewBlock = document.getElementById("objectViewBlock");
+const objectViewTitle = document.getElementById("objectViewTitle");
 const objectView = document.getElementById("objectView");
 const visualEventBadge = document.getElementById("visualEventBadge");
 const executionView = document.getElementById("executionView");
@@ -132,7 +133,7 @@ function parseLiteral(rawValue) {
     return value.slice(1, -1);
   }
 
-  throw new Error("For now, Variables supports numbers, booleans, and strings.");
+  throw new Error("For now, editable lessons support numbers, booleans, and strings.");
 }
 
 function displayValue(value) {
@@ -145,6 +146,30 @@ function getValueType(value) {
   if (typeof value === "number") return "number";
   if (typeof value === "boolean") return "boolean";
   return "string";
+}
+
+function outputValue(value) {
+  if (typeof value === "boolean") return displayValue(value);
+  return String(value);
+}
+
+function displayVariables(variableValues) {
+  return Object.fromEntries(
+    Object.entries(variableValues).map(([name, value]) => [name, displayValue(value)])
+  );
+}
+
+function buildVisualObjects(variableValues) {
+  return Object.entries(variableValues).map(([name, value]) => ({
+    name,
+    value: displayValue(value),
+    valueType: getValueType(value)
+  }));
+}
+
+function formatNameList(names) {
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
 }
 
 function buildVariableSteps(sourceCode) {
@@ -199,7 +224,7 @@ function buildVariableSteps(sourceCode) {
         [variableName]: displayValue(variableValue)
       },
       execution: `Read ${variableName}\nCall print()`,
-      output: String(variableValue),
+      output: outputValue(variableValue),
       visual: {
         event: "variable_read",
         name: variableName,
@@ -209,6 +234,97 @@ function buildVariableSteps(sourceCode) {
       }
     }
   ];
+}
+
+function buildMultipleVariableSteps(sourceCode) {
+  const sourceLines = sourceCode
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((text, index) => ({ text, lineNumber: index + 1 }))
+    .filter(({ text }) => text.trim() !== "");
+
+  if (sourceLines.length < 3 || sourceLines.length > 7) {
+    throw new Error("Use 2 to 6 assignment lines followed by one print(...) line.");
+  }
+
+  const assignmentLines = sourceLines.slice(0, -1);
+  const printLine = sourceLines.at(-1);
+  const variableValues = Object.create(null);
+  const steps = [];
+
+  assignmentLines.forEach(({ text, lineNumber }) => {
+    const assignmentMatch = text.match(/^\s*([A-Za-z_]\w*)\s*=\s*(.+)\s*$/);
+
+    if (!assignmentMatch) {
+      throw new Error(`Line ${lineNumber} should look like: name = "Maya"`);
+    }
+
+    const variableName = assignmentMatch[1];
+
+    if (Object.hasOwn(variableValues, variableName)) {
+      throw new Error(`${variableName} is assigned more than once. Use a unique name for each variable.`);
+    }
+
+    const variableValue = parseLiteral(assignmentMatch[2]);
+    variableValues[variableName] = variableValue;
+
+    steps.push({
+      line: lineNumber,
+      explanation: `Python creates ${variableName} and stores ${displayValue(variableValue)}.`,
+      variables: displayVariables(variableValues),
+      execution: `${variableName} ← ${displayValue(variableValue)}`,
+      output: "",
+      visual: {
+        event: "variable_created",
+        objects: buildVisualObjects(variableValues),
+        activeNames: [variableName]
+      }
+    });
+  });
+
+  const printMatch = printLine.text.match(/^\s*print\(\s*([^)]*?)\s*\)\s*$/);
+
+  if (!printMatch) {
+    throw new Error(`Line ${printLine.lineNumber} should look like: print(name, age)`);
+  }
+
+  const printedNames = printMatch[1]
+    .split(",")
+    .map(name => name.trim())
+    .filter(Boolean);
+
+  if (
+    printedNames.length < 2 ||
+    printedNames.some(name => !/^[A-Za-z_]\w*$/.test(name))
+  ) {
+    throw new Error("print(...) should contain at least two variable names separated by commas.");
+  }
+
+  if (new Set(printedNames).size < 2) {
+    throw new Error("Print at least two different variables in this lesson.");
+  }
+
+  const undefinedName = printedNames.find(name => !Object.hasOwn(variableValues, name));
+
+  if (undefinedName) {
+    throw new Error(`${undefinedName} has not been created yet.`);
+  }
+
+  steps.push({
+    line: printLine.lineNumber,
+    explanation: `Python reads ${formatNameList(printedNames)} and sends their values to the console.`,
+    variables: displayVariables(variableValues),
+    execution: `${printedNames.map(name => `Read ${name}`).join("\n")}\nCall print()`,
+    output: printedNames.map(name => outputValue(variableValues[name])).join(" "),
+    visual: {
+      event: "variables_read",
+      objects: buildVisualObjects(variableValues),
+      activeNames: printedNames,
+      target: "print"
+    }
+  });
+
+  return steps;
 }
 
 function renderTopics() {
@@ -291,35 +407,68 @@ function renderObjectView(visual) {
     return;
   }
 
+  const objects = visual.objects || [
+    {
+      name: visual.name,
+      value: visual.value,
+      valueType: visual.valueType
+    }
+  ];
+  const orderedActiveNames = visual.activeNames || objects.map(object => object.name);
+  const activeNames = new Set(orderedActiveNames);
+  const isReadEvent = visual.event.includes("read");
+
   objectViewBlock.hidden = false;
-  visualEventBadge.textContent = visual.event === "variable_created" ? "Object created" : "Value read";
+  objectViewTitle.textContent = objects.length > 1 ? "Variables in memory" : "Variable in memory";
+  visualEventBadge.textContent = isReadEvent
+    ? objects.length > 1 ? "Values read" : "Value read"
+    : "Object created";
 
-  const memoryDiagram = document.createElement("div");
-  memoryDiagram.className = "memory-diagram";
+  const memoryMap = document.createElement("div");
+  memoryMap.className = "memory-map";
 
-  const variableNode = document.createElement("div");
-  variableNode.className = "variable-node";
-  variableNode.textContent = visual.name;
+  objects.forEach(object => {
+    const memoryDiagram = document.createElement("div");
+    const isActive = activeNames.has(object.name);
+    memoryDiagram.className = `memory-diagram${isActive ? "" : " is-settled"}${isReadEvent && isActive ? " is-read" : ""}`;
 
-  const referenceArrow = document.createElement("div");
-  referenceArrow.className = "reference-arrow";
-  referenceArrow.setAttribute("aria-hidden", "true");
+    const variableNode = document.createElement("div");
+    variableNode.className = "variable-node";
+    variableNode.textContent = object.name;
 
-  const valueObject = createValueObject(visual);
-  memoryDiagram.append(variableNode, referenceArrow, valueObject);
-  objectView.appendChild(memoryDiagram);
+    const referenceArrow = document.createElement("div");
+    referenceArrow.className = "reference-arrow";
+    referenceArrow.setAttribute("aria-hidden", "true");
+
+    const valueObject = createValueObject(object);
+    memoryDiagram.append(variableNode, referenceArrow, valueObject);
+    memoryMap.appendChild(memoryDiagram);
+  });
+
+  objectView.appendChild(memoryMap);
 
   const relationship = document.createElement("p");
   relationship.className = "object-view-caption";
-  relationship.textContent = `${visual.name} refers to this ${visual.valueType} object in memory.`;
+  const activeObjects = orderedActiveNames
+    .map(name => objects.find(object => object.name === name))
+    .filter(Boolean);
+  const activeObject = activeObjects[0];
+  relationship.textContent = objects.length > 1
+    ? `${activeObject.name} now refers to a ${activeObject.valueType} object; the earlier variable remains in memory.`
+    : `${activeObject.name} refers to this ${activeObject.valueType} object in memory.`;
   objectView.appendChild(relationship);
 
-  if (visual.event === "variable_read") {
+  if (isReadEvent) {
     const printJourney = document.createElement("div");
     printJourney.className = "print-journey";
 
-    const travellingValue = createValueObject(visual, "travelling-value");
-    travellingValue.setAttribute("aria-hidden", "true");
+    const travellingValues = document.createElement("div");
+    travellingValues.className = "travelling-values";
+    travellingValues.setAttribute("aria-hidden", "true");
+
+    activeObjects.forEach(object => {
+      travellingValues.appendChild(createValueObject(object, "travelling-value"));
+    });
 
     const journeyLine = document.createElement("div");
     journeyLine.className = "journey-line";
@@ -329,9 +478,12 @@ function renderObjectView(visual) {
     printTarget.className = "print-target";
     printTarget.textContent = "print()";
 
-    printJourney.append(travellingValue, journeyLine, printTarget);
+    printJourney.append(travellingValues, journeyLine, printTarget);
     objectView.appendChild(printJourney);
-    relationship.textContent = `Python reads ${visual.name}; its value moves to print().`;
+    const names = activeObjects.map(object => object.name);
+    relationship.textContent = names.length > 1
+      ? `Python reads ${names.join(" and ")}; both values move to print().`
+      : `Python reads ${names[0]}; its value moves to print().`;
   }
 }
 
@@ -392,8 +544,8 @@ function loadTopic() {
 
   if (topic.editable) {
     try {
-      currentSteps = buildVariableSteps(topic.defaultCode);
-      setEditorMessage("Try changing the variable name or value, then click Apply changes.");
+      currentSteps = topic.buildSteps(topic.defaultCode);
+      setEditorMessage(topic.editorHint);
     } catch {
       currentSteps = [];
     }
@@ -416,7 +568,7 @@ function applyCode() {
   stopPlayback();
 
   try {
-    currentSteps = buildVariableSteps(codeEditor.value);
+    currentSteps = topic.buildSteps(codeEditor.value);
     activeStepIndex = 0;
     setEditorMessage("Changes applied. Step through the updated execution.", "success");
     renderStep();
