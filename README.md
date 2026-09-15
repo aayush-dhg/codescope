@@ -14,7 +14,7 @@ https://aayush-dhg.github.io/codescope/
 
 The core idea is simple:
 
-> **Don’t just show the output. Show how the code gets there.**
+> **Donâ€™t just show the output. Show how the code gets there.**
 
 CodeScope is starting with Python because Python is widely used in:
 
@@ -27,7 +27,7 @@ CodeScope is starting with Python because Python is widely used in:
 
 The long-term direction is:
 
-**Visual Python → Visual Computer Science → Visual AI**
+**Visual Python â†’ Visual Computer Science â†’ Visual AI**
 
 ## Current Features
 
@@ -37,6 +37,8 @@ The current prototype includes:
 - Step-by-step execution playback
 - Current-line highlighting
 - Variable state visualization
+- Animated variable-to-object memory view for numbers, strings, and booleans
+- Visual value movement from a variable to `print()`
 - Execution explanations
 - Console output
 - Previous / Next controls
@@ -60,11 +62,11 @@ The current prototype uses predefined execution steps so the visualization exper
 
 ```text
 Python Example
-      ↓
+      â†“
 Predefined Execution Steps
-      ↓
+      â†“
 Visualization
-      ↓
+      â†“
 Animation / Controls
 ```
 
@@ -72,13 +74,13 @@ The long-term architecture is intended to become:
 
 ```text
 Python Code
-    ↓
+    â†“
 Trace Engine
-    ↓
+    â†“
 Structured Execution Events
-    ↓
+    â†“
 Visualization Engine
-    ↓
+    â†“
 Interactive UI
 ```
 
@@ -109,11 +111,11 @@ Technology will be added only when it solves a real product or engineering need.
 
 ```text
 codescope/
-├── index.html
-├── styles.css
-├── app.js
-├── README.md
-└── .gitignore
+â”œâ”€â”€ index.html
+â”œâ”€â”€ styles.css
+â”œâ”€â”€ app.js
+â”œâ”€â”€ README.md
+â””â”€â”€ .gitignore
 ```
 
 ## Run Locally
@@ -152,7 +154,7 @@ GitHub Pages automatically deploys the updated version.
 
 ## Roadmap
 
-### Phase 1 — Visual Python Fundamentals
+### Phase 1 â€” Visual Python Fundamentals
 
 - [x] Variables
 - [x] Arithmetic
@@ -170,7 +172,7 @@ GitHub Pages automatically deploys the updated version.
 - [ ] References and mutation
 - [ ] Common beginner errors
 
-### Phase 2 — Real Execution Engine
+### Phase 2 â€” Real Execution Engine
 
 - [ ] Parse supported Python input
 - [ ] Generate structured execution events
@@ -179,7 +181,7 @@ GitHub Pages automatically deploys the updated version.
 - [ ] Support user-entered Python examples
 - [ ] Add safe execution limits
 
-### Phase 3 — Computer Science Visualization
+### Phase 3 â€” Computer Science Visualization
 
 - [ ] Recursion
 - [ ] Call stack
@@ -189,7 +191,7 @@ GitHub Pages automatically deploys the updated version.
 - [ ] Stacks and queues
 - [ ] Trees and graphs
 
-### Phase 4 — Data & AI
+### Phase 4 â€” Data & AI
 
 - [ ] NumPy
 - [ ] Pandas
@@ -228,7 +230,7 @@ Safe execution will be treated as a core architecture requirement before arbitra
 
 The project is being built incrementally:
 
-> **small working feature → test → understand → improve**
+> **small working feature â†’ test â†’ understand â†’ improve**
 
 The goal is to make each concept work end-to-end before adding major complexity.
 
@@ -240,7 +242,7 @@ CodeScope is designed to bridge that gap.
 
 The goal is for a learner to paste Python code into the platform and eventually say:
 
-> **“Now I understand what the computer is actually doing.”**
+> **â€œNow I understand what the computer is actually doing.â€**
 
 ## Author
 

@@ -101,6 +101,9 @@ const codeEditor = document.getElementById("codeEditor");
 const currentLineBadge = document.getElementById("currentLineBadge");
 const explanationCard = document.getElementById("explanationCard");
 const variablesView = document.getElementById("variablesView");
+const objectViewBlock = document.getElementById("objectViewBlock");
+const objectView = document.getElementById("objectView");
+const visualEventBadge = document.getElementById("visualEventBadge");
 const executionView = document.getElementById("executionView");
 const outputView = document.getElementById("outputView");
 const editorMessage = document.getElementById("editorMessage");
@@ -136,6 +139,12 @@ function displayValue(value) {
   if (typeof value === "string") return `"${value}"`;
   if (typeof value === "boolean") return value ? "True" : "False";
   return String(value);
+}
+
+function getValueType(value) {
+  if (typeof value === "number") return "number";
+  if (typeof value === "boolean") return "boolean";
+  return "string";
 }
 
 function buildVariableSteps(sourceCode) {
@@ -175,7 +184,13 @@ function buildVariableSteps(sourceCode) {
         [variableName]: displayValue(variableValue)
       },
       execution: `${variableName} ← ${displayValue(variableValue)}`,
-      output: ""
+      output: "",
+      visual: {
+        event: "variable_created",
+        name: variableName,
+        value: displayValue(variableValue),
+        valueType: getValueType(variableValue)
+      }
     },
     {
       line: 2,
@@ -184,7 +199,14 @@ function buildVariableSteps(sourceCode) {
         [variableName]: displayValue(variableValue)
       },
       execution: `Read ${variableName}\nCall print()`,
-      output: String(variableValue)
+      output: String(variableValue),
+      visual: {
+        event: "variable_read",
+        name: variableName,
+        value: displayValue(variableValue),
+        valueType: getValueType(variableValue),
+        target: "print"
+      }
     }
   ];
 }
@@ -219,21 +241,98 @@ function updateLineNumbers() {
 function renderVariables(variables) {
   const entries = Object.entries(variables || {});
 
+  variablesView.replaceChildren();
+
   if (!entries.length) {
-    variablesView.innerHTML = "<span>No variables yet.</span>";
+    const emptyMessage = document.createElement("span");
+    emptyMessage.textContent = "No variables yet.";
+    variablesView.appendChild(emptyMessage);
     return;
   }
 
-  variablesView.innerHTML = entries
-    .map(
-      ([name, value]) => `
-        <div class="variable-card">
-          <div class="variable-name">${name}</div>
-          <div class="variable-value">${value}</div>
-        </div>
-      `
-    )
-    .join("");
+  entries.forEach(([name, value]) => {
+    const card = document.createElement("div");
+    card.className = "variable-card";
+
+    const nameElement = document.createElement("div");
+    nameElement.className = "variable-name";
+    nameElement.textContent = name;
+
+    const valueElement = document.createElement("div");
+    valueElement.className = "variable-value";
+    valueElement.textContent = value;
+
+    card.append(nameElement, valueElement);
+    variablesView.appendChild(card);
+  });
+}
+
+function createValueObject(visual, extraClass = "") {
+  const valueObject = document.createElement("div");
+  valueObject.className = `memory-object ${visual.valueType} ${extraClass}`.trim();
+
+  const value = document.createElement("span");
+  value.className = "memory-object-value";
+  value.textContent = visual.value;
+
+  const type = document.createElement("span");
+  type.className = "memory-object-type";
+  type.textContent = visual.valueType;
+
+  valueObject.append(value, type);
+  return valueObject;
+}
+
+function renderObjectView(visual) {
+  objectView.replaceChildren();
+
+  if (!visual) {
+    objectViewBlock.hidden = true;
+    return;
+  }
+
+  objectViewBlock.hidden = false;
+  visualEventBadge.textContent = visual.event === "variable_created" ? "Object created" : "Value read";
+
+  const memoryDiagram = document.createElement("div");
+  memoryDiagram.className = "memory-diagram";
+
+  const variableNode = document.createElement("div");
+  variableNode.className = "variable-node";
+  variableNode.textContent = visual.name;
+
+  const referenceArrow = document.createElement("div");
+  referenceArrow.className = "reference-arrow";
+  referenceArrow.setAttribute("aria-hidden", "true");
+
+  const valueObject = createValueObject(visual);
+  memoryDiagram.append(variableNode, referenceArrow, valueObject);
+  objectView.appendChild(memoryDiagram);
+
+  const relationship = document.createElement("p");
+  relationship.className = "object-view-caption";
+  relationship.textContent = `${visual.name} refers to this ${visual.valueType} object in memory.`;
+  objectView.appendChild(relationship);
+
+  if (visual.event === "variable_read") {
+    const printJourney = document.createElement("div");
+    printJourney.className = "print-journey";
+
+    const travellingValue = createValueObject(visual, "travelling-value");
+    travellingValue.setAttribute("aria-hidden", "true");
+
+    const journeyLine = document.createElement("div");
+    journeyLine.className = "journey-line";
+    journeyLine.setAttribute("aria-hidden", "true");
+
+    const printTarget = document.createElement("div");
+    printTarget.className = "print-target";
+    printTarget.textContent = "print()";
+
+    printJourney.append(travellingValue, journeyLine, printTarget);
+    objectView.appendChild(printJourney);
+    relationship.textContent = `Python reads ${visual.name}; its value moves to print().`;
+  }
 }
 
 function renderStep() {
@@ -249,6 +348,7 @@ function renderStep() {
     currentLineBadge.textContent = "—";
     explanationCard.textContent = "Apply valid code to generate execution steps.";
     variablesView.innerHTML = "<span>No variables yet.</span>";
+    renderObjectView(null);
     executionView.textContent = "Waiting for valid code.";
     outputView.textContent = "No output yet.";
     previousButton.disabled = true;
@@ -264,6 +364,7 @@ function renderStep() {
   outputView.textContent = step.output || "No output yet.";
 
   renderVariables(step.variables);
+  renderObjectView(step.visual);
 
   previousButton.disabled = activeStepIndex === 0;
   nextButton.disabled = activeStepIndex === currentSteps.length - 1;
