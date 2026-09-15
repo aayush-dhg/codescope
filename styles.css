@@ -382,6 +382,14 @@ textarea {
   gap: 12px;
 }
 
+.memory-map {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
 .memory-diagram {
   width: 100%;
   display: grid;
@@ -389,6 +397,31 @@ textarea {
   align-items: center;
   justify-content: center;
   max-width: 360px;
+}
+
+.memory-diagram.is-settled {
+  opacity: 0.52;
+}
+
+.memory-diagram.is-settled .variable-node,
+.memory-diagram.is-settled .reference-arrow,
+.memory-diagram.is-settled .memory-object {
+  animation: none !important;
+}
+
+.memory-diagram.is-read .variable-node,
+.memory-diagram.is-read .reference-arrow {
+  animation: none;
+}
+
+.memory-diagram.is-read .memory-object {
+  animation: object-read 520ms 120ms ease-out both;
+}
+
+.memory-diagram:not(.is-settled):not(.is-read) .variable-node {
+  box-shadow:
+    0 6px 16px rgba(37, 99, 235, 0.12),
+    0 0 0 4px rgba(37, 99, 235, 0.08);
 }
 
 .variable-node {
@@ -481,19 +514,27 @@ textarea {
   width: min(100%, 300px);
   height: 48px;
   display: grid;
-  grid-template-columns: 40px 1fr auto;
+  grid-template-columns: minmax(40px, auto) 1fr auto;
   align-items: center;
   position: relative;
 }
 
-.print-journey .travelling-value {
+.travelling-values {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 1;
+  animation: value-travels 780ms 580ms ease-in-out both;
+}
+
+.travelling-values .travelling-value {
   min-width: 36px;
   min-height: 36px;
   width: 36px;
   height: 36px;
   padding: 4px;
-  z-index: 1;
-  animation: value-travels 780ms 580ms ease-in-out both;
+  animation: none;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.14);
 }
 
 .travelling-value .memory-object-value {
@@ -534,6 +575,12 @@ textarea {
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes object-read {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(96, 165, 250, 0.2); }
+  100% { transform: scale(1); }
+}
+
 @keyframes value-travels {
   0% { opacity: 0; transform: translateX(0) scale(0.7); }
   18% { opacity: 1; }
@@ -550,6 +597,7 @@ textarea {
   .variable-node,
   .reference-arrow,
   .memory-object,
+  .travelling-values,
   .print-target {
     animation-duration: 1ms;
     animation-delay: 0ms;

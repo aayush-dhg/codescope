@@ -454,7 +454,7 @@ function renderObjectView(visual) {
     .filter(Boolean);
   const activeObject = activeObjects[0];
   relationship.textContent = objects.length > 1
-    ? `${activeObject.name} now refers to a ${activeObject.valueType} object; the earlier variable remains in memory.`
+    ? `${activeObject.name} is created now. Earlier variables stay visible because they still exist in memory.`
     : `${activeObject.name} refers to this ${activeObject.valueType} object in memory.`;
   objectView.appendChild(relationship);
 
@@ -481,9 +481,12 @@ function renderObjectView(visual) {
     printJourney.append(travellingValues, journeyLine, printTarget);
     objectView.appendChild(printJourney);
     const names = activeObjects.map(object => object.name);
-    relationship.textContent = names.length > 1
-      ? `Python reads ${names.join(" and ")}; both values move to print().`
-      : `Python reads ${names[0]}; its value moves to print().`;
+    if (names.length === 1) {
+      relationship.textContent = `Python reads ${names[0]}; its value moves to print().`;
+    } else {
+      const valueCount = names.length === 2 ? "Both values" : `All ${names.length} values`;
+      relationship.textContent = `Python reads ${formatNameList(names)}. ${valueCount} move to print().`;
+    }
   }
 }
 
