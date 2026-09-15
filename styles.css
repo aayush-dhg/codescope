@@ -758,6 +758,7 @@ textarea {
 
   .workspace {
     padding: 16px;
+    padding-bottom: calc(132px + env(safe-area-inset-bottom));
   }
 
   .lesson-header {
@@ -769,11 +770,70 @@ textarea {
   }
 
   .controls-bar {
-    align-items: flex-start;
+    position: fixed;
+    right: calc(10px + env(safe-area-inset-right));
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: calc(10px + env(safe-area-inset-left));
+    z-index: 30;
+
+    margin: 0;
+    padding: 8px;
+    align-items: stretch;
     flex-direction: column;
+    gap: 7px;
+    border-color: rgba(203, 213, 225, 0.9);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.22);
+    backdrop-filter: blur(14px);
+  }
+
+  .controls-group {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr 1fr 0.9fr;
+    gap: 6px;
+  }
+
+  .control-button {
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 5px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .control-button.primary {
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.2);
+  }
+
+  .speed-control {
+    width: 100%;
+    min-height: 30px;
+    justify-content: flex-end;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .speed-control select {
+    min-height: 30px;
+    padding: 3px 7px;
+    font-size: 12px;
   }
 
   .editor-actions {
     flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 360px) {
+  .controls-bar {
+    right: calc(6px + env(safe-area-inset-right));
+    left: calc(6px + env(safe-area-inset-left));
+  }
+
+  .control-button {
+    font-size: 11px;
   }
 }
