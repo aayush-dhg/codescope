@@ -4,22 +4,21 @@ const topics = [
     category: "BASICS",
     title: "Variables",
     description: "Watch a value get stored in a variable.",
-    code: ["x = 5", "print(x)"],
-    steps: [
-      { line: 1, explanation: "Python creates the variable x and stores the value 5.", variables: { x: "5" }, execution: "Assignment\nx ← 5", output: "" },
-      { line: 2, explanation: "print(x) reads the current value of x and sends it to the console.", variables: { x: "5" }, execution: "Read x\nSend 5 to print()", output: "5" }
-    ]
+    editable: true,
+    defaultCode: "x = 5\nprint(x)",
+    steps: []
   },
   {
     id: "multiple-variables",
     category: "BASICS",
     title: "Multiple Variables",
     description: "See multiple values exist in program state at the same time.",
-    code: ["name = \"Maya\"", "age = 24", "print(name, age)"],
+    editable: false,
+    defaultCode: 'name = "Maya"\nage = 24\nprint(name, age)',
     steps: [
-      { line: 1, explanation: "The string \"Maya\" is stored in name.", variables: { name: "\"Maya\"" }, execution: "Assignment\nname ← \"Maya\"", output: "" },
-      { line: 2, explanation: "A second variable, age, is created with the integer 24.", variables: { name: "\"Maya\"", age: "24" }, execution: "Assignment\nage ← 24", output: "" },
-      { line: 3, explanation: "Python reads both variables and prints them.", variables: { name: "\"Maya\"", age: "24" }, execution: "Read name\nRead age\nCall print()", output: "Maya 24" }
+      { line: 1, explanation: 'The string "Maya" is stored in name.', variables: { name: '"Maya"' }, execution: 'name ← "Maya"', output: "" },
+      { line: 2, explanation: "A second variable, age, is created with the integer 24.", variables: { name: '"Maya"', age: "24" }, execution: "age ← 24", output: "" },
+      { line: 3, explanation: "Python reads both variables and prints them.", variables: { name: '"Maya"', age: "24" }, execution: "Read name\nRead age\nCall print()", output: "Maya 24" }
     ]
   },
   {
@@ -27,7 +26,8 @@ const topics = [
     category: "BASICS",
     title: "Arithmetic",
     description: "Follow an expression as Python calculates a new value.",
-    code: ["a = 8", "b = 3", "total = a + b", "print(total)"],
+    editable: false,
+    defaultCode: "a = 8\nb = 3\ntotal = a + b\nprint(total)",
     steps: [
       { line: 1, explanation: "a is created with the value 8.", variables: { a: "8" }, execution: "a ← 8", output: "" },
       { line: 2, explanation: "b is created with the value 3.", variables: { a: "8", b: "3" }, execution: "b ← 3", output: "" },
@@ -40,12 +40,13 @@ const topics = [
     category: "CONTROL FLOW",
     title: "If Statement",
     description: "See a condition evaluated before a block runs.",
-    code: ["age = 20", "if age >= 18:", "    status = \"Adult\"", "print(status)"],
+    editable: false,
+    defaultCode: 'age = 20\nif age >= 18:\n    status = "Adult"\nprint(status)',
     steps: [
       { line: 1, explanation: "age is set to 20.", variables: { age: "20" }, execution: "age ← 20", output: "" },
       { line: 2, explanation: "Python checks whether age is greater than or equal to 18. The condition is True.", variables: { age: "20" }, execution: "20 >= 18 → True", output: "" },
-      { line: 3, explanation: "Because the condition was True, the indented block runs and status is created.", variables: { age: "20", status: "\"Adult\"" }, execution: "Condition passed\nstatus ← \"Adult\"", output: "" },
-      { line: 4, explanation: "The status value is printed.", variables: { age: "20", status: "\"Adult\"" }, execution: "print(\"Adult\")", output: "Adult" }
+      { line: 3, explanation: "Because the condition was True, the indented block runs and status is created.", variables: { age: "20", status: '"Adult"' }, execution: 'Condition passed\nstatus ← "Adult"', output: "" },
+      { line: 4, explanation: "The status value is printed.", variables: { age: "20", status: '"Adult"' }, execution: 'print("Adult")', output: "Adult" }
     ]
   },
   {
@@ -53,7 +54,8 @@ const topics = [
     category: "CONTROL FLOW",
     title: "For Loop",
     description: "Watch the loop variable change on each iteration.",
-    code: ["numbers = [2, 4, 6]", "total = 0", "for number in numbers:", "    total += number", "print(total)"],
+    editable: false,
+    defaultCode: "numbers = [2, 4, 6]\ntotal = 0\nfor number in numbers:\n    total += number\nprint(total)",
     steps: [
       { line: 1, explanation: "A list containing three numbers is created.", variables: { numbers: "[2, 4, 6]" }, execution: "Create list", output: "" },
       { line: 2, explanation: "total starts at 0.", variables: { numbers: "[2, 4, 6]", total: "0" }, execution: "total ← 0", output: "" },
@@ -71,7 +73,8 @@ const topics = [
     category: "FUNCTIONS",
     title: "Functions",
     description: "Follow parameters, local variables, and a return value.",
-    code: ["def add(a, b):", "    result = a + b", "    return result", "", "answer = add(3, 4)", "print(answer)"],
+    editable: false,
+    defaultCode: "def add(a, b):\n    result = a + b\n    return result\n\nanswer = add(3, 4)\nprint(answer)",
     steps: [
       { line: 1, explanation: "Python defines add(). The function is stored, but its body does not run yet.", variables: { add: "<function>" }, execution: "Define function add(a, b)", output: "" },
       { line: 5, explanation: "add(3, 4) is called. The arguments become local parameters a = 3 and b = 4.", variables: { add: "<function>", a: "3", b: "4" }, execution: "Call add(3, 4)\nCreate function frame", output: "" },
@@ -85,6 +88,7 @@ const topics = [
 
 let activeTopicIndex = 0;
 let activeStepIndex = 0;
+let currentSteps = [];
 let playTimer = null;
 
 const topicList = document.getElementById("topicList");
@@ -99,84 +103,234 @@ const explanationCard = document.getElementById("explanationCard");
 const variablesView = document.getElementById("variablesView");
 const executionView = document.getElementById("executionView");
 const outputView = document.getElementById("outputView");
+const editorMessage = document.getElementById("editorMessage");
+const applyCodeButton = document.getElementById("applyCodeButton");
+const resetCodeButton = document.getElementById("resetCodeButton");
 const restartButton = document.getElementById("restartButton");
 const previousButton = document.getElementById("previousButton");
 const nextButton = document.getElementById("nextButton");
 const playButton = document.getElementById("playButton");
 const speedSelect = document.getElementById("speedSelect");
 
+function parseLiteral(rawValue) {
+  const value = rawValue.trim();
+
+  if (/^-?\d+(\.\d+)?$/.test(value)) {
+    return Number(value);
+  }
+
+  if (value === "True") return true;
+  if (value === "False") return false;
+
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+
+  throw new Error("For now, Variables supports numbers, booleans, and strings.");
+}
+
+function displayValue(value) {
+  if (typeof value === "string") return `"${value}"`;
+  if (typeof value === "boolean") return value ? "True" : "False";
+  return String(value);
+}
+
+function buildVariableSteps(sourceCode) {
+  const lines = sourceCode
+    .replace(/\r/g, "")
+    .split("\n")
+    .filter(line => line.trim() !== "");
+
+  if (lines.length !== 2) {
+    throw new Error("Use exactly two lines: an assignment, then print(variable).");
+  }
+
+  const assignmentMatch = lines[0].match(/^\s*([A-Za-z_]\w*)\s*=\s*(.+)\s*$/);
+
+  if (!assignmentMatch) {
+    throw new Error("Line 1 should look like: x = 5");
+  }
+
+  const variableName = assignmentMatch[1];
+  const variableValue = parseLiteral(assignmentMatch[2]);
+
+  const printMatch = lines[1].match(/^\s*print\(\s*([A-Za-z_]\w*)\s*\)\s*$/);
+
+  if (!printMatch) {
+    throw new Error(`Line 2 should look like: print(${variableName})`);
+  }
+
+  if (printMatch[1] !== variableName) {
+    throw new Error(`You created ${variableName}, so print(${variableName}) to display it.`);
+  }
+
+  return [
+    {
+      line: 1,
+      explanation: `Python creates the variable ${variableName} and stores ${displayValue(variableValue)}.`,
+      variables: {
+        [variableName]: displayValue(variableValue)
+      },
+      execution: `${variableName} ← ${displayValue(variableValue)}`,
+      output: ""
+    },
+    {
+      line: 2,
+      explanation: `print(${variableName}) reads the current value of ${variableName} and sends it to the console.`,
+      variables: {
+        [variableName]: displayValue(variableValue)
+      },
+      execution: `Read ${variableName}\nCall print()`,
+      output: String(variableValue)
+    }
+  ];
+}
+
 function renderTopics() {
   topicList.innerHTML = "";
+
   topics.forEach((topic, index) => {
     const button = document.createElement("button");
     button.className = "topic-button" + (index === activeTopicIndex ? " active" : "");
     button.textContent = topic.title;
+
     button.addEventListener("click", () => {
       stopPlayback();
       activeTopicIndex = index;
-      activeStepIndex = 0;
-      renderAll();
+      loadTopic();
     });
+
     topicList.appendChild(button);
   });
 }
 
-function renderCode(topic, step) {
-  lineNumbers.innerHTML = topic.code.map((_, index) => index + 1).join("<br>");
-  codeEditor.innerHTML = topic.code
-    .map((line, index) => {
-      const isActive = index + 1 === step.line;
-      const safeLine = line
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
-      return `<span class="code-line ${isActive ? "active" : ""}">${safeLine || " "}</span>`;
-    })
-    .join("");
+function updateLineNumbers() {
+  const lineCount = Math.max(1, codeEditor.value.split("\n").length);
+
+  lineNumbers.textContent = Array.from(
+    { length: lineCount },
+    (_, index) => index + 1
+  ).join("\n");
 }
 
 function renderVariables(variables) {
   const entries = Object.entries(variables || {});
+
   if (!entries.length) {
     variablesView.innerHTML = "<span>No variables yet.</span>";
     return;
   }
+
   variablesView.innerHTML = entries
-    .map(([name, value]) => `
-      <div class="variable-card">
-        <div class="variable-name">${name}</div>
-        <div class="variable-value">${value}</div>
-      </div>
-    `)
+    .map(
+      ([name, value]) => `
+        <div class="variable-card">
+          <div class="variable-name">${name}</div>
+          <div class="variable-value">${value}</div>
+        </div>
+      `
+    )
     .join("");
 }
 
-function renderAll() {
+function renderStep() {
   const topic = topics[activeTopicIndex];
-  const step = topic.steps[activeStepIndex];
+  const step = currentSteps[activeStepIndex];
 
   lessonCategory.textContent = topic.category;
   lessonTitle.textContent = topic.title;
   lessonDescription.textContent = topic.description;
-  stepCounter.textContent = `Step ${activeStepIndex + 1} of ${topic.steps.length}`;
+
+  if (!step) {
+    stepCounter.textContent = "No execution";
+    currentLineBadge.textContent = "—";
+    explanationCard.textContent = "Apply valid code to generate execution steps.";
+    variablesView.innerHTML = "<span>No variables yet.</span>";
+    executionView.textContent = "Waiting for valid code.";
+    outputView.textContent = "No output yet.";
+    previousButton.disabled = true;
+    nextButton.disabled = true;
+    playButton.disabled = true;
+    return;
+  }
+
+  stepCounter.textContent = `Step ${activeStepIndex + 1} of ${currentSteps.length}`;
   currentLineBadge.textContent = `Line ${step.line}`;
   explanationCard.textContent = step.explanation;
   executionView.innerHTML = step.execution.replaceAll("\n", "<br>");
   outputView.textContent = step.output || "No output yet.";
 
-  renderCode(topic, step);
   renderVariables(step.variables);
-  renderTopics();
 
   previousButton.disabled = activeStepIndex === 0;
-  nextButton.disabled = activeStepIndex === topic.steps.length - 1;
+  nextButton.disabled = activeStepIndex === currentSteps.length - 1;
+  playButton.disabled = false;
+}
+
+function setEditorMessage(message, type = "") {
+  editorMessage.className = "editor-message";
+
+  if (type) {
+    editorMessage.classList.add(type);
+  }
+
+  editorMessage.textContent = message;
+}
+
+function loadTopic() {
+  const topic = topics[activeTopicIndex];
+
+  codeEditor.value = topic.defaultCode;
+  codeEditor.readOnly = !topic.editable;
+  applyCodeButton.disabled = !topic.editable;
+
+  updateLineNumbers();
+
+  if (topic.editable) {
+    try {
+      currentSteps = buildVariableSteps(topic.defaultCode);
+      setEditorMessage("Try changing the variable name or value, then click Apply changes.");
+    } catch {
+      currentSteps = [];
+    }
+  } else {
+    currentSteps = topic.steps;
+    setEditorMessage("This topic is read-only for now. Editable support will be added later.");
+  }
+
+  activeStepIndex = 0;
+
+  renderTopics();
+  renderStep();
+}
+
+function applyCode() {
+  const topic = topics[activeTopicIndex];
+
+  if (!topic.editable) return;
+
+  stopPlayback();
+
+  try {
+    currentSteps = buildVariableSteps(codeEditor.value);
+    activeStepIndex = 0;
+    setEditorMessage("Changes applied. Step through the updated execution.", "success");
+    renderStep();
+  } catch (error) {
+    currentSteps = [];
+    activeStepIndex = 0;
+    setEditorMessage(error.message, "error");
+    renderStep();
+  }
 }
 
 function nextStep() {
-  const topic = topics[activeTopicIndex];
-  if (activeStepIndex < topic.steps.length - 1) {
+  if (activeStepIndex < currentSteps.length - 1) {
     activeStepIndex += 1;
-    renderAll();
+    renderStep();
   } else {
     stopPlayback();
   }
@@ -185,14 +339,14 @@ function nextStep() {
 function previousStep() {
   if (activeStepIndex > 0) {
     activeStepIndex -= 1;
-    renderAll();
+    renderStep();
   }
 }
 
 function restart() {
   stopPlayback();
   activeStepIndex = 0;
-  renderAll();
+  renderStep();
 }
 
 function startPlayback() {
@@ -200,17 +354,20 @@ function startPlayback() {
     stopPlayback();
     return;
   }
+
+  if (!currentSteps.length) return;
+
   playButton.textContent = "❚❚ Pause";
   const delay = Number(speedSelect.value);
 
   playTimer = setInterval(() => {
-    const topic = topics[activeTopicIndex];
-    if (activeStepIndex >= topic.steps.length - 1) {
+    if (activeStepIndex >= currentSteps.length - 1) {
       stopPlayback();
       return;
     }
+
     activeStepIndex += 1;
-    renderAll();
+    renderStep();
   }, delay);
 }
 
@@ -219,13 +376,57 @@ function stopPlayback() {
     clearInterval(playTimer);
     playTimer = null;
   }
+
   playButton.textContent = "▶ Play";
 }
+
+codeEditor.addEventListener("input", () => {
+  updateLineNumbers();
+
+  const topic = topics[activeTopicIndex];
+
+  if (topic.editable) {
+    setEditorMessage("You have unapplied changes.");
+  }
+});
+
+codeEditor.addEventListener("scroll", () => {
+  lineNumbers.scrollTop = codeEditor.scrollTop;
+});
+
+codeEditor.addEventListener("keydown", event => {
+  if (codeEditor.readOnly) return;
+
+  if (event.key === "Tab") {
+    event.preventDefault();
+
+    const start = codeEditor.selectionStart;
+    const end = codeEditor.selectionEnd;
+
+    codeEditor.value =
+      codeEditor.value.substring(0, start) +
+      "    " +
+      codeEditor.value.substring(end);
+
+    codeEditor.selectionStart = codeEditor.selectionEnd = start + 4;
+
+    updateLineNumbers();
+    setEditorMessage("You have unapplied changes.");
+  }
+});
+
+applyCodeButton.addEventListener("click", applyCode);
+
+resetCodeButton.addEventListener("click", () => {
+  stopPlayback();
+  loadTopic();
+});
 
 restartButton.addEventListener("click", restart);
 previousButton.addEventListener("click", previousStep);
 nextButton.addEventListener("click", nextStep);
 playButton.addEventListener("click", startPlayback);
+
 speedSelect.addEventListener("change", () => {
   if (playTimer) {
     stopPlayback();
@@ -233,4 +434,4 @@ speedSelect.addEventListener("change", () => {
   }
 });
 
-renderAll();
+loadTopic();

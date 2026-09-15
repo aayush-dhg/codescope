@@ -31,7 +31,7 @@
         </div>
         <nav id="topicList" class="topic-list" aria-label="Python topics"></nav>
         <div class="sidebar-footer">
-          <p>More topics will be added as CodeScope grows.</p>
+          <p>Variables is now editable. More topics will follow incrementally.</p>
         </div>
       </aside>
 
@@ -54,10 +54,25 @@
                 <span class="panel-label">CODE</span>
                 <h3>Python</h3>
               </div>
+
+              <div class="editor-actions">
+                <button id="resetCodeButton" class="text-button" type="button">Reset</button>
+                <button id="applyCodeButton" class="apply-button" type="button">Apply changes</button>
+              </div>
             </div>
-            <div class="editor-wrap">
+
+            <div id="editorWrap" class="editor-wrap">
               <div id="lineNumbers" class="line-numbers" aria-hidden="true"></div>
-              <pre id="codeEditor" class="code-editor" aria-label="Python example"></pre>
+              <textarea
+                id="codeEditor"
+                class="code-editor-input"
+                spellcheck="false"
+                aria-label="Python code editor"
+              ></textarea>
+            </div>
+
+            <div id="editorMessage" class="editor-message" aria-live="polite">
+              Variables supports editing. Other topics are read-only for now.
             </div>
           </section>
 
@@ -69,13 +84,16 @@
               </div>
               <span id="currentLineBadge" class="line-badge">Line 1</span>
             </div>
+
             <div class="visualization-content">
               <div id="explanationCard" class="explanation-card"></div>
+
               <div class="state-grid">
                 <div class="state-block">
                   <h4>Variables</h4>
                   <div id="variablesView" class="variables-view"></div>
                 </div>
+
                 <div class="state-block">
                   <h4>Execution</h4>
                   <div id="executionView" class="execution-view"></div>
@@ -102,6 +120,7 @@
             <button id="playButton" class="control-button primary" type="button">▶ Play</button>
             <button id="nextButton" class="control-button secondary" type="button">Next →</button>
           </div>
+
           <div class="speed-control">
             <label for="speedSelect">Speed</label>
             <select id="speedSelect">
