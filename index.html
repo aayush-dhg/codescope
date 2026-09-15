@@ -3,10 +3,119 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CodeScope</title>
+  <meta name="description" content="CodeScope helps learners see how Python code executes step by step." />
+  <title>CodeScope — See how Python works</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <h1>CodeScope</h1>
-  <p>See what your code is doing.</p>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark">&lt;/&gt;</div>
+        <div>
+          <h1 class="brand">CodeScope</h1>
+          <p class="tagline">See what your code is doing.</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="status-pill">Python • Beginner</span>
+        <a class="github-link" href="https://github.com/aayush-dhg/codescope" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </header>
+
+    <main class="main-layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span class="eyebrow">LEARN</span>
+          <h2>Python Topics</h2>
+        </div>
+        <nav id="topicList" class="topic-list" aria-label="Python topics"></nav>
+        <div class="sidebar-footer">
+          <p>More topics will be added as CodeScope grows.</p>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <div class="lesson-header">
+          <div>
+            <span id="lessonCategory" class="eyebrow">BASICS</span>
+            <h2 id="lessonTitle">Variables</h2>
+            <p id="lessonDescription">Watch a value get stored in a variable.</p>
+          </div>
+          <div class="lesson-progress">
+            <span id="stepCounter">Step 1 of 1</span>
+          </div>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="panel code-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-label">CODE</span>
+                <h3>Python</h3>
+              </div>
+            </div>
+            <div class="editor-wrap">
+              <div id="lineNumbers" class="line-numbers" aria-hidden="true"></div>
+              <pre id="codeEditor" class="code-editor" aria-label="Python example"></pre>
+            </div>
+          </section>
+
+          <section class="panel visualization-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-label">VISUALIZATION</span>
+                <h3>Program State</h3>
+              </div>
+              <span id="currentLineBadge" class="line-badge">Line 1</span>
+            </div>
+            <div class="visualization-content">
+              <div id="explanationCard" class="explanation-card"></div>
+              <div class="state-grid">
+                <div class="state-block">
+                  <h4>Variables</h4>
+                  <div id="variablesView" class="variables-view"></div>
+                </div>
+                <div class="state-block">
+                  <h4>Execution</h4>
+                  <div id="executionView" class="execution-view"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel output-panel">
+            <div class="panel-header">
+              <div>
+                <span class="panel-label">OUTPUT</span>
+                <h3>Console</h3>
+              </div>
+            </div>
+            <div id="outputView" class="console-output">No output yet.</div>
+          </section>
+        </div>
+
+        <div class="controls-bar">
+          <div class="controls-group">
+            <button id="restartButton" class="control-button secondary" type="button">↺ Restart</button>
+            <button id="previousButton" class="control-button secondary" type="button">← Previous</button>
+            <button id="playButton" class="control-button primary" type="button">▶ Play</button>
+            <button id="nextButton" class="control-button secondary" type="button">Next →</button>
+          </div>
+          <div class="speed-control">
+            <label for="speedSelect">Speed</label>
+            <select id="speedSelect">
+              <option value="1400">0.5×</option>
+              <option value="900" selected>1×</option>
+              <option value="500">1.5×</option>
+              <option value="250">2×</option>
+            </select>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./app.js"></script>
 </body>
 </html>
