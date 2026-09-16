@@ -60,6 +60,16 @@ const topics = [
     buildSteps: source => PythonLessons.build(source, "function"),
     editorHint: "Edit parameters, arguments, and the function body. Supports positional calls and return; recursion and default arguments are not supported.",
     defaultCode: "def add(a, b):\n    result = a + b\n    return result\n\nanswer = add(3, 4)\nprint(answer)"
+  },
+  {
+    id: "playground",
+    category: "EXPLORE",
+    title: "Python Playground",
+    description: "Run real Python, then explore its execution one step at a time.",
+    editable: true,
+    realPython: true,
+    editorHint: "Click Run Python. The first run downloads Python; later runs can use your browser’s cache.",
+    defaultCode: 'def factorial(n):\n    if n <= 1:\n        return 1\n    return n * factorial(n - 1)\n\nnumbers = [3, 4, 5]\nresults = {n: factorial(n) for n in numbers}\nfor number, result in results.items():\n    print(f"{number}! = {result}")'
   }
 ];
 
@@ -67,6 +77,9 @@ let activeTopicIndex = 0;
 let activeStepIndex = 0;
 let currentSteps = [];
 let playTimer = null;
+const playground = new PythonPlayground();
+let runGeneration = 0;
+let pythonRunning = false;
 
 const topicList = document.getElementById("topicList");
 const lessonCategory = document.getElementById("lessonCategory");
@@ -87,6 +100,9 @@ const outputView = document.getElementById("outputView");
 const editorMessage = document.getElementById("editorMessage");
 const applyCodeButton = document.getElementById("applyCodeButton");
 const resetCodeButton = document.getElementById("resetCodeButton");
+const stopPythonButton = document.getElementById("stopPythonButton");
+const playgroundOptions = document.getElementById("playgroundOptions");
+const pythonInput = document.getElementById("pythonInput");
 const restartButton = document.getElementById("restartButton");
 const previousButton = document.getElementById("previousButton");
 const nextButton = document.getElementById("nextButton");
@@ -370,7 +386,7 @@ function createValueObject(visual, extraClass = "") {
 
   const type = document.createElement("span");
   type.className = "memory-object-type";
-  type.textContent = visual.valueType;
+  type.textContent = visual.typeName || visual.valueType;
 
   valueObject.append(value, type);
   return valueObject;
@@ -536,10 +552,10 @@ function renderStep() {
   if (!step) {
     stepCounter.textContent = "No execution";
     currentLineBadge.textContent = "—";
-    explanationCard.textContent = "Apply valid code to generate execution steps.";
+    explanationCard.textContent = pythonRunning ? "Python is running in the background. Stop execution to cancel." : topic.realPython ? "Run Python to generate an execution timeline." : "Apply valid code to generate execution steps.";
     variablesView.innerHTML = "<span>No variables yet.</span>";
     renderObjectView(null);
-    executionView.textContent = "Waiting for valid code.";
+    executionView.textContent = pythonRunning ? "Waiting for Python results…" : topic.realPython ? "Ready to run Python." : "Waiting for valid code.";
     outputView.textContent = "No output yet.";
     previousButton.disabled = true;
     nextButton.disabled = true;
@@ -572,15 +588,22 @@ function setEditorMessage(message, type = "") {
 }
 
 function loadTopic() {
+  cancelPython();
   const topic = topics[activeTopicIndex];
 
   codeEditor.value = topic.defaultCode;
   codeEditor.readOnly = !topic.editable;
   applyCodeButton.disabled = !topic.editable;
+  applyCodeButton.textContent = topic.realPython ? "Run Python" : "Apply changes";
+  stopPythonButton.hidden = !topic.realPython;
+  playgroundOptions.hidden = !topic.realPython;
 
   updateLineNumbers();
 
-  if (topic.editable) {
+  if (topic.realPython) {
+    currentSteps = [];
+    setEditorMessage(topic.editorHint);
+  } else if (topic.editable) {
     try {
       currentSteps = topic.buildSteps(topic.defaultCode);
       setEditorMessage(topic.editorHint);
@@ -602,6 +625,7 @@ function applyCode() {
   const topic = topics[activeTopicIndex];
 
   if (!topic.editable) return;
+  if (topic.realPython) { runPython(); return; }
 
   stopPlayback();
 
@@ -617,6 +641,45 @@ function applyCode() {
     renderStep();
   }
 }
+
+function cancelPython() {
+  runGeneration++;
+  playground.stop();
+  pythonRunning = false;
+  stopPythonButton.disabled = true;
+  applyCodeButton.disabled = false;
+}
+
+async function runPython() {
+  cancelPython();
+  stopPlayback();
+  const generation = runGeneration;
+  pythonRunning = true;
+  currentSteps = [];
+  activeStepIndex = 0;
+  applyCodeButton.disabled = true;
+  stopPythonButton.disabled = false;
+  setEditorMessage("Loading Python… The first run may take a moment.");
+  renderStep();
+  const result = await playground.run(codeEditor.value, pythonInput.value, message => {
+    if (generation === runGeneration) setEditorMessage(message);
+  });
+  if (generation !== runGeneration) return;
+  pythonRunning = false;
+  stopPythonButton.disabled = true;
+  applyCodeButton.disabled = false;
+  currentSteps = result.steps || [];
+  activeStepIndex = Math.max(0, currentSteps.length - 1);
+  setEditorMessage(result.error || "Finished. Press Play to replay the timeline, or use Previous and Next to inspect each step.", result.error ? "error" : "success");
+  renderStep();
+}
+
+stopPythonButton.addEventListener("click", () => {
+  cancelPython();
+  setEditorMessage("Execution stopped. Edit your code or click Run Python to try again.");
+  renderStep();
+});
+pythonInput.addEventListener("input", invalidateExecution);
 
 function nextStep() {
   if (activeStepIndex < currentSteps.length - 1) {
@@ -647,6 +710,10 @@ function startPlayback() {
   }
 
   if (!currentSteps.length) return;
+  if (activeStepIndex === currentSteps.length - 1) {
+    activeStepIndex = 0;
+    renderStep();
+  }
 
   playButton.textContent = "❚❚ Pause";
   const delay = Number(speedSelect.value);
@@ -672,10 +739,11 @@ function stopPlayback() {
 }
 
 function invalidateExecution() {
+  cancelPython();
   stopPlayback();
   currentSteps = [];
   activeStepIndex = 0;
-  setEditorMessage("You have unapplied changes. Click Apply changes to run this code.");
+  setEditorMessage(topics[activeTopicIndex].realPython ? "Code or input changed. Click Run Python to execute." : "You have unapplied changes. Click Apply changes to run this code.");
   renderStep();
 }
 

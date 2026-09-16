@@ -910,3 +910,26 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .lesson-flow-token { animation: none; }
 }
+
+.playground-options {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.playground-options[hidden], #stopPythonButton[hidden] { display: none; }
+.playground-options label { display: block; font-weight: 600; }
+.playground-options label span { font-weight: 400; color: var(--muted); }
+.playground-options textarea {
+  display: block;
+  margin: 8px 0 12px;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 65px;
+}
+.playground-options summary { cursor: pointer; color: var(--accent); }
+.editor-actions { flex-wrap: wrap; }
+#stopPythonButton { color: var(--danger); }

@@ -58,8 +58,9 @@ The current prototype includes:
 - If Statements
 - For Loops
 - Functions
+- Python Playground (real Python)
 
-### Supported Editing
+### Guided Lesson Editing
 
 - **Variables / Multiple Variables:** literal assignments followed by `print()`; retain their existing lesson constraints.
 - **Arithmetic:** assignments, reassignment, numeric `+ - * / // %`, parentheses, unary signs, string concatenation, and `print()`.
@@ -69,16 +70,30 @@ The current prototype includes:
 
 Use spaces for indentation. Blank lines and comments retain their original source line numbers. Unsupported syntax and invalid input show a line-specific error; editing invalidates the old playback until **Apply changes** is clicked.
 
-This is a teaching subset, not a full Python runtime. Imports, recursion, mutation/indexing, `elif`, `while`, default/keyword arguments, and arbitrary built-ins are not supported. Numbers use JavaScript numeric storage and simplified formatting rather than separate Python integer/float objects. Execution is limited to 12,000 source characters, 120 nonempty lines, 100 values per loop, 300 emitted steps, and eight nested blocks/call frames, with an additional evaluation-work limit. Failed executions clear the visualization rather than showing partial results.
+These six guided lessons use a teaching subset, not a full Python runtime. Imports, recursion, mutation/indexing, `elif`, `while`, default/keyword arguments, and arbitrary built-ins are not supported. Numbers use JavaScript numeric storage and simplified formatting rather than separate Python integer/float objects. Execution is limited to 12,000 source characters, 120 nonempty lines, 100 values per loop, 300 emitted steps, and eight nested blocks/call frames, with an additional evaluation-work limit. Failed executions clear the visualization rather than showing partial results.
+
+### Real-Python Playground
+
+Select **Python Playground**, edit the code, and click **Run Python**. It runs CPython through [Pyodide](https://pyodide.org/en/stable/usage/quickstart.html), pinned to version **314.0.7**, in a dedicated module Web Worker. The first run downloads the runtime from jsDelivr; loading requires network access. The existing six lessons do not download Python.
+
+- Supports Python syntax including `while`, `elif`, recursion, comprehensions, indexing/mutation, classes, exception handling, and browser-compatible standard-library imports.
+- Enter answers for `input()` in the optional input box, one per line. Exhausted input raises `EOFError`.
+- The completed run opens on its final state/output. **Play**, **Previous**, **Next**, and **Restart** replay recorded snapshots; **Stop execution** terminates an in-progress worker.
+- Python line trace events show state **before** that line executes. Call, return/yield/unwind, exception, and completion events show frame snapshots. C/native internals and imported module source are not traced. Async programs and dynamically compiled code are not fully visualized in this first version.
+- Runtime errors retain the trace and output produced before the error. Syntax errors identify the source line. Forced Stop and wall-clock timeout discard incomplete worker results.
+- Every run uses a fresh worker/interpreter. Variables, imports, and the in-memory filesystem do not persist across runs. Browser HTTP caching can avoid repeat runtime downloads.
+- Limits: 20,000 source characters, 8,000 input/output characters, 500 trace events plus a terminal event, 2 MB of recorded snapshots, and a **10-second execution timeout** after startup. Runtime loading has a separate 90-second timeout. At most 25 variables per scope and seven local frames are displayed, with bounded previews of collection values. Custom objects show their Python type without invoking user-defined `__repr__`.
+
+This does not mean every Python application can run in a browser. Third-party packages are not automatically installed; desktop GUI/process APIs and the user's local filesystem are unavailable. A normal HTTP/HTTPS server is required; `file://` is insufficient for the worker. The Playground executes ordinary Python scripts, not top-level `await` cells.
 
 ## Current Architecture
 
-The prototype generates execution steps from edited examples. Variables and Multiple Variables use focused lesson builders. Arithmetic, If Statements, For Loops, and Functions use a shared, bounded Python-subset interpreter in `lesson-engine.js`. It parses code into statements and expressions, then produces snapshots and animation events without using `eval()` or running arbitrary Python.
+CodeScope currently has two execution paths. The six guided lessons use focused builders plus the shared, bounded Python-subset interpreter in `lesson-engine.js`. The Python Playground uses Pyodide in a Web Worker and produces snapshots through `sys.settrace`. Both paths emit the same kind of timeline data for the visualization layer, while keeping the beginner lessons predictable and the Playground open-ended.
 
 ```text
-Editable Python Subset
-      ↓
-Parser / Bounded Lesson Interpreter
+Guided Lesson Code                 Python Playground Code
+      ↓                                      ↓
+Lesson Parser / Interpreter          Pyodide Worker + sys.settrace
       ↓
 Execution Snapshots + Visual Events
       ↓
@@ -87,12 +102,12 @@ Visualization
 Animation / Controls
 ```
 
-The long-term architecture is intended to become:
+The Playground implements the next architecture alongside the guided lessons:
 
 ```text
 Python Code
     ↓
-Trace Engine
+Pyodide Worker + Python sys.settrace
     ↓
 Structured Execution Events
     ↓
@@ -111,6 +126,7 @@ The current version intentionally uses a simple stack:
 - CSS
 - JavaScript
 - GitHub Pages
+- Pyodide / CPython (Playground only)
 
 This keeps the first version lightweight while the product experience is being validated.
 
@@ -118,9 +134,7 @@ Future versions may introduce technologies such as:
 
 - React
 - TypeScript
-- Python
 - FastAPI
-- Pyodide or another sandboxed Python execution approach
 
 Technology will be added only when it solves a real product or engineering need.
 
@@ -132,7 +146,10 @@ codescope/
 ├── styles.css
 ├── app.js
 ├── lesson-engine.js
-├── tests/lesson-engine.test.cjs
+├── playground.js
+├── python-worker.js
+├── python-tracer.py
+├── tests/
 ├── package.json
 ├── README.md
 └── .gitignore
@@ -152,19 +169,24 @@ Move into the project folder:
 cd codescope
 ```
 
-For the current static version, you can open `index.html` directly in a browser.
+Start a static server (or use VS Code Live Server):
 
-For a better local development experience, you can also use a simple local server such as the VS Code Live Server extension.
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000). The guided lessons can also open directly from `index.html`, but the Playground needs HTTP/HTTPS for its worker and tracer assets.
 
 ## Tests
 
-The execution tests use Node.js's built-in test runner with no dependencies:
+The JavaScript tests use Node.js's built-in test runner; the tracer tests use Python's standard-library unittest. Neither requires installed dependencies:
 
 ```bash
 npm test
+python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
-They cover arithmetic precedence, both conditional branches, loops and output history, function frames and returns, source line mapping, invalid input, and execution limits. The site itself still runs as static HTML/CSS/JavaScript without a build step.
+They cover guided lessons, worker cancellation/timeouts/retries, real-Python tracing, recursion, mutations, input/output, frame snapshots, invalid input, and execution limits. Tracer unit tests use native Python; browser verification is also needed to exercise the actual Pyodide CDN/Worker path. The site itself still runs as static HTML/CSS/JavaScript without a build step.
 
 ## Deployment
 
@@ -210,7 +232,8 @@ GitHub Pages automatically deploys the updated version.
 - [x] Track execution line-by-line for supported lessons
 - [x] Support user-entered examples within the documented subset
 - [x] Add execution limits to the lesson interpreter
-- [ ] Expand toward a full sandboxed Python runtime
+- [x] Add a real-Python Playground in a cancellable worker
+- [ ] Migrate guided lessons to the real-Python engine after validating the Playground
 
 ### Phase 3 — Computer Science Visualization
 
@@ -251,11 +274,9 @@ Animations should explain program behavior rather than simply decorate the inter
 
 ## Security
 
-A future version of CodeScope may allow users to execute arbitrary Python code.
+Playground code executes locally in the browser, not on a Python server. A fresh Web Worker keeps execution off the UI thread and can be terminated by Stop or timeout. CodeScope itself does not upload editor contents; Pyodide runtime files load from jsDelivr.
 
-Untrusted Python code should **never** be executed directly on a production server without proper sandboxing or isolation.
-
-Safe execution will be treated as a core architecture requirement before arbitrary code execution is introduced.
+A worker and `sys.settrace` are **not a hardened sandbox for hostile code**. Python can access browser-worker APIs via Pyodide's JavaScript bridge, including network APIs, and can modify tracing. Display/trace limits are teaching safeguards, not a strict memory or security boundary. Use the Playground for your own learning code. Do not add server-side execution or automatic execution of untrusted shared code without a separate isolation design.
 
 ## Development Philosophy
 

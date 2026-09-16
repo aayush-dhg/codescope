@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="CodeScope helps learners see how Python code executes step by step." />
   <title>CodeScope — See how Python works</title>
-  <link rel="stylesheet" href="./styles.css?v=20260916-1" />
+  <link rel="stylesheet" href="./styles.css?v=20260916-2" />
 </head>
 <body>
   <div class="app-shell">
@@ -31,7 +31,7 @@
         </div>
         <nav id="topicList" class="topic-list" aria-label="Python topics"></nav>
         <div class="sidebar-footer">
-          <p>All six topics are editable. Each lesson supports a focused set of Python syntax.</p>
+          <p>Six guided lessons plus a real-Python Playground for open-ended experiments.</p>
         </div>
       </aside>
 
@@ -57,6 +57,7 @@
 
               <div class="editor-actions">
                 <button id="resetCodeButton" class="text-button" type="button">Reset</button>
+                <button id="stopPythonButton" class="control-button secondary" type="button" hidden disabled>Stop execution</button>
                 <button id="applyCodeButton" class="apply-button" type="button">Apply changes</button>
               </div>
             </div>
@@ -71,6 +72,15 @@
               ></textarea>
             </div>
 
+            <div id="playgroundOptions" class="playground-options" hidden>
+              <label for="pythonInput">Input for input() <span>(optional, one answer per line)</span></label>
+              <textarea id="pythonInput" rows="3" maxlength="8000" spellcheck="false" placeholder="Type answers here before running"></textarea>
+              <details>
+                <summary>What can I run?</summary>
+                <p>Real Python supports loops, recursion, classes, comprehensions, and browser-compatible standard-library modules. Packages such as NumPy are not preloaded. Desktop windows, system processes, and access to your computer’s files are unavailable.</p>
+                <p>Runs stop after 10 seconds, 500 trace events, or 8,000 output characters. Each run starts fresh. Values are shown as bounded previews. Line steps show state <strong>before</strong> the line executes; the final step shows the completed result. Play/Pause controls replay; Stop execution cancels a running program.</p>
+              </details>
+            </div>
             <div id="editorMessage" class="editor-message" aria-live="polite">
               Edit the example, apply your changes, and step through its execution.
             </div>
@@ -147,6 +157,7 @@
   </div>
 
   <script src="./lesson-engine.js?v=20260916-1"></script>
-  <script src="./app.js?v=20260916-1"></script>
+  <script src="./playground.js?v=1"></script>
+  <script src="./app.js?v=20260916-2"></script>
 </body>
 </html>
