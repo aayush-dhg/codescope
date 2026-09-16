@@ -3,6 +3,7 @@
 }
 
 :root {
+  --sidebar-width: 250px;
   --bg: #f5f7fb;
   --panel: #ffffff;
   --border: #e5e7eb;
@@ -98,7 +99,7 @@ textarea {
 
 .main-layout {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
   min-height: calc(100vh - 76px);
 }
 
@@ -158,6 +159,7 @@ textarea {
 
 .workspace {
   padding: 24px;
+  padding-bottom: calc(144px + env(safe-area-inset-bottom));
   min-width: 0;
 }
 
@@ -665,12 +667,20 @@ textarea {
 }
 
 .controls-bar {
-  margin-top: 16px;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  position: fixed;
+  left: calc(var(--sidebar-width) + 24px + env(safe-area-inset-left));
+  right: calc(24px + env(safe-area-inset-right));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 30;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(14px);
   padding: 12px 14px;
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
@@ -720,6 +730,10 @@ textarea {
 }
 
 @media (max-width: 1100px) {
+  :root {
+    --sidebar-width: 210px;
+  }
+
   .workspace-grid {
     grid-template-columns: 1fr;
   }
@@ -728,9 +742,6 @@ textarea {
     min-height: 360px;
   }
 
-  .main-layout {
-    grid-template-columns: 210px 1fr;
-  }
 }
 
 @media (max-width: 760px) {
