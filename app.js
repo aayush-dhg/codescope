@@ -25,64 +25,41 @@ const topics = [
     id: "arithmetic",
     category: "BASICS",
     title: "Arithmetic",
-    description: "Follow an expression as Python calculates a new value.",
-    editable: false,
-    defaultCode: "a = 8\nb = 3\ntotal = a + b\nprint(total)",
-    steps: [
-      { line: 1, explanation: "a is created with the value 8.", variables: { a: "8" }, execution: "a ← 8", output: "" },
-      { line: 2, explanation: "b is created with the value 3.", variables: { a: "8", b: "3" }, execution: "b ← 3", output: "" },
-      { line: 3, explanation: "Python reads a and b, adds them, then stores the result in total.", variables: { a: "8", b: "3", total: "11" }, execution: "8 + 3 → 11\ntotal ← 11", output: "" },
-      { line: 4, explanation: "The value of total is printed.", variables: { a: "8", b: "3", total: "11" }, execution: "print(11)", output: "11" }
-    ]
+    description: "Follow operands through a calculation into a new variable.",
+    editable: true,
+    buildSteps: source => PythonLessons.build(source, "arithmetic"),
+    editorHint: "Edit numbers and expressions using +, -, *, /, //, %, and parentheses. Finish with print(...).",
+    defaultCode: "a = 8\nb = 3\ntotal = a + b\nprint(total)"
   },
   {
     id: "if-statement",
     category: "CONTROL FLOW",
     title: "If Statement",
-    description: "See a condition evaluated before a block runs.",
-    editable: false,
-    defaultCode: 'age = 20\nif age >= 18:\n    status = "Adult"\nprint(status)',
-    steps: [
-      { line: 1, explanation: "age is set to 20.", variables: { age: "20" }, execution: "age ← 20", output: "" },
-      { line: 2, explanation: "Python checks whether age is greater than or equal to 18. The condition is True.", variables: { age: "20" }, execution: "20 >= 18 → True", output: "" },
-      { line: 3, explanation: "Because the condition was True, the indented block runs and status is created.", variables: { age: "20", status: '"Adult"' }, execution: 'Condition passed\nstatus ← "Adult"', output: "" },
-      { line: 4, explanation: "The status value is printed.", variables: { age: "20", status: '"Adult"' }, execution: 'print("Adult")', output: "Adult" }
-    ]
+    description: "Change a condition and see which branch runs.",
+    editable: true,
+    buildSteps: source => PythonLessons.build(source, "if-statement"),
+    editorHint: "Try age = 15. Use if/else with ==, !=, <, >, <=, or >=. Indent each branch with spaces.",
+    defaultCode: 'age = 20\nif age >= 18:\n    status = "Adult"\nelse:\n    status = "Minor"\nprint(status)'
   },
   {
     id: "for-loop",
     category: "CONTROL FLOW",
     title: "For Loop",
-    description: "Watch the loop variable change on each iteration.",
-    editable: false,
-    defaultCode: "numbers = [2, 4, 6]\ntotal = 0\nfor number in numbers:\n    total += number\nprint(total)",
-    steps: [
-      { line: 1, explanation: "A list containing three numbers is created.", variables: { numbers: "[2, 4, 6]" }, execution: "Create list", output: "" },
-      { line: 2, explanation: "total starts at 0.", variables: { numbers: "[2, 4, 6]", total: "0" }, execution: "total ← 0", output: "" },
-      { line: 3, explanation: "The loop begins. number takes the first value: 2.", variables: { numbers: "[2, 4, 6]", total: "0", number: "2" }, execution: "Iteration 1\nnumber ← 2", output: "" },
-      { line: 4, explanation: "2 is added to total. total changes from 0 to 2.", variables: { numbers: "[2, 4, 6]", total: "2", number: "2" }, execution: "0 + 2 → 2", output: "" },
-      { line: 3, explanation: "The loop continues. number now becomes 4.", variables: { numbers: "[2, 4, 6]", total: "2", number: "4" }, execution: "Iteration 2\nnumber ← 4", output: "" },
-      { line: 4, explanation: "4 is added to total. total changes from 2 to 6.", variables: { numbers: "[2, 4, 6]", total: "6", number: "4" }, execution: "2 + 4 → 6", output: "" },
-      { line: 3, explanation: "The third iteration begins. number becomes 6.", variables: { numbers: "[2, 4, 6]", total: "6", number: "6" }, execution: "Iteration 3\nnumber ← 6", output: "" },
-      { line: 4, explanation: "6 is added to total. total changes from 6 to 12.", variables: { numbers: "[2, 4, 6]", total: "12", number: "6" }, execution: "6 + 6 → 12", output: "" },
-      { line: 5, explanation: "The loop is finished, so Python prints the final total.", variables: { numbers: "[2, 4, 6]", total: "12", number: "6" }, execution: "Loop complete\nprint(12)", output: "12" }
-    ]
+    description: "Watch each item enter the loop and update the program state.",
+    editable: true,
+    buildSteps: source => PythonLessons.build(source, "for-loop"),
+    editorHint: "Edit the list or loop over range(1, 5). Use assignments, +=, and print(). Maximum 100 items and 300 steps.",
+    defaultCode: "numbers = [2, 4, 6]\ntotal = 0\nfor number in numbers:\n    total += number\nprint(total)"
   },
   {
     id: "function",
     category: "FUNCTIONS",
     title: "Functions",
-    description: "Follow parameters, local variables, and a return value.",
-    editable: false,
-    defaultCode: "def add(a, b):\n    result = a + b\n    return result\n\nanswer = add(3, 4)\nprint(answer)",
-    steps: [
-      { line: 1, explanation: "Python defines add(). The function is stored, but its body does not run yet.", variables: { add: "<function>" }, execution: "Define function add(a, b)", output: "" },
-      { line: 5, explanation: "add(3, 4) is called. The arguments become local parameters a = 3 and b = 4.", variables: { add: "<function>", a: "3", b: "4" }, execution: "Call add(3, 4)\nCreate function frame", output: "" },
-      { line: 2, explanation: "Inside the function, a + b is calculated and stored in result.", variables: { add: "<function>", a: "3", b: "4", result: "7" }, execution: "3 + 4 → 7\nresult ← 7", output: "" },
-      { line: 3, explanation: "The function returns 7 to the line that called it.", variables: { add: "<function>", result: "7" }, execution: "return 7\nClose function frame", output: "" },
-      { line: 5, explanation: "The returned value 7 is stored in answer.", variables: { add: "<function>", answer: "7" }, execution: "answer ← 7", output: "" },
-      { line: 6, explanation: "answer is printed.", variables: { add: "<function>", answer: "7" }, execution: "print(7)", output: "7" }
-    ]
+    description: "See arguments enter a local frame and a return value reach the caller.",
+    editable: true,
+    buildSteps: source => PythonLessons.build(source, "function"),
+    editorHint: "Edit parameters, arguments, and the function body. Supports positional calls and return; recursion and default arguments are not supported.",
+    defaultCode: "def add(a, b):\n    result = a + b\n    return result\n\nanswer = add(3, 4)\nprint(answer)"
   }
 ];
 
@@ -399,11 +376,69 @@ function createValueObject(visual, extraClass = "") {
   return valueObject;
 }
 
+function renderLessonVisual(visual) {
+  objectViewBlock.hidden = false;
+  objectViewTitle.textContent = visual.title;
+  visualEventBadge.textContent = visual.event.replaceAll("_", " ");
+
+  const flow = document.createElement("div");
+  flow.className = "lesson-flow";
+  visual.flow.forEach((text, index) => {
+    const token = document.createElement("span");
+    token.className = "lesson-flow-token" + (text === "→" ? " is-arrow" : "");
+    token.style.setProperty("--flow-index", index);
+    token.textContent = text;
+    flow.appendChild(token);
+  });
+  objectView.appendChild(flow);
+
+  visual.scopes.forEach(scope => {
+    const frame = document.createElement("section");
+    frame.className = "lesson-frame";
+    const heading = document.createElement("h5");
+    heading.textContent = scope.name;
+    frame.appendChild(heading);
+    const memory = document.createElement("div");
+    memory.className = "memory-map";
+    scope.objects.forEach(object => {
+      const row = document.createElement("div");
+      const isCurrentScope = scope === visual.scopes.at(-1);
+      const active = isCurrentScope && visual.activeNames.includes(object.name);
+      row.className = "memory-diagram" + (active ? "" : " is-settled");
+      const name = document.createElement("div");
+      name.className = "variable-node";
+      name.textContent = object.name;
+      const arrow = document.createElement("div");
+      arrow.className = "reference-arrow";
+      arrow.setAttribute("aria-hidden", "true");
+      row.append(name, arrow, createValueObject(object));
+      memory.appendChild(row);
+    });
+    if (!scope.objects.length) {
+      const empty = document.createElement("p");
+      empty.className = "object-view-caption";
+      empty.textContent = "No variables in this frame yet.";
+      memory.appendChild(empty);
+    }
+    frame.appendChild(memory);
+    objectView.appendChild(frame);
+  });
+  const caption = document.createElement("p");
+  caption.className = "object-view-caption";
+  caption.textContent = visual.detail;
+  objectView.appendChild(caption);
+}
+
 function renderObjectView(visual) {
   objectView.replaceChildren();
 
   if (!visual) {
     objectViewBlock.hidden = true;
+    return;
+  }
+
+  if (visual.lesson) {
+    renderLessonVisual(visual);
     return;
   }
 
@@ -515,8 +550,8 @@ function renderStep() {
   stepCounter.textContent = `Step ${activeStepIndex + 1} of ${currentSteps.length}`;
   currentLineBadge.textContent = `Line ${step.line}`;
   explanationCard.textContent = step.explanation;
-  executionView.innerHTML = step.execution.replaceAll("\n", "<br>");
-  outputView.textContent = step.output || "No output yet.";
+  executionView.textContent = step.execution;
+  outputView.textContent = step.hasOutput || step.output ? step.output : "No output yet.";
 
   renderVariables(step.variables);
   renderObjectView(step.visual);
@@ -636,13 +671,21 @@ function stopPlayback() {
   playButton.textContent = "▶ Play";
 }
 
+function invalidateExecution() {
+  stopPlayback();
+  currentSteps = [];
+  activeStepIndex = 0;
+  setEditorMessage("You have unapplied changes. Click Apply changes to run this code.");
+  renderStep();
+}
+
 codeEditor.addEventListener("input", () => {
   updateLineNumbers();
 
   const topic = topics[activeTopicIndex];
 
   if (topic.editable) {
-    setEditorMessage("You have unapplied changes.");
+    invalidateExecution();
   }
 });
 
@@ -667,7 +710,7 @@ codeEditor.addEventListener("keydown", event => {
     codeEditor.selectionStart = codeEditor.selectionEnd = start + 4;
 
     updateLineNumbers();
-    setEditorMessage("You have unapplied changes.");
+    invalidateExecution();
   }
 });
 

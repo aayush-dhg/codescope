@@ -35,17 +35,20 @@ The current prototype includes:
 
 - Beginner-friendly Python topic navigation
 - Step-by-step execution playback
-- Current-line highlighting
+- Current execution line indicator
 - Variable state visualization
 - Animated variable-to-object memory view for numbers, strings, and booleans
 - Visual value movement from a variable to `print()`
+- Editable code in all six lessons
+- Animated arithmetic, branch decisions, loop iterations, and function calls
+- Global and local frame visualization in function lessons
 - Execution explanations
 - Console output
 - Previous / Next controls
 - Play / Pause
 - Restart
 - Adjustable playback speed
-- Responsive layout
+- Responsive layout with floating playback controls on desktop and mobile
 
 ### Current Topics
 
@@ -56,14 +59,28 @@ The current prototype includes:
 - For Loops
 - Functions
 
+### Supported Editing
+
+- **Variables / Multiple Variables:** literal assignments followed by `print()`; retain their existing lesson constraints.
+- **Arithmetic:** assignments, reassignment, numeric `+ - * / // %`, parentheses, unary signs, string concatenation, and `print()`.
+- **If Statements:** the above plus `if` / `else`, a single comparison per expression (`== != < > <= >=`), and nested conditions.
+- **For Loops:** the above plus lists and `for item in list` or `for item in range(start, stop, step)`. `range()` is supported directly in loop headers. Empty and descending ranges work.
+- **Functions:** top-level `def`, positional arguments, local variables, global reads, `return`, implicit `None`, and the above control flow. Local frames are shown during calls and removed on return.
+
+Use spaces for indentation. Blank lines and comments retain their original source line numbers. Unsupported syntax and invalid input show a line-specific error; editing invalidates the old playback until **Apply changes** is clicked.
+
+This is a teaching subset, not a full Python runtime. Imports, recursion, mutation/indexing, `elif`, `while`, default/keyword arguments, and arbitrary built-ins are not supported. Numbers use JavaScript numeric storage and simplified formatting rather than separate Python integer/float objects. Execution is limited to 12,000 source characters, 120 nonempty lines, 100 values per loop, 300 emitted steps, and eight nested blocks/call frames, with an additional evaluation-work limit. Failed executions clear the visualization rather than showing partial results.
+
 ## Current Architecture
 
-The current prototype uses predefined execution steps so the visualization experience can be designed before building a full Python execution engine.
+The prototype generates execution steps from edited examples. Variables and Multiple Variables use focused lesson builders. Arithmetic, If Statements, For Loops, and Functions use a shared, bounded Python-subset interpreter in `lesson-engine.js`. It parses code into statements and expressions, then produces snapshots and animation events without using `eval()` or running arbitrary Python.
 
 ```text
-Python Example
+Editable Python Subset
       ↓
-Predefined Execution Steps
+Parser / Bounded Lesson Interpreter
+      ↓
+Execution Snapshots + Visual Events
       ↓
 Visualization
       ↓
@@ -114,6 +131,9 @@ codescope/
 ├── index.html
 ├── styles.css
 ├── app.js
+├── lesson-engine.js
+├── tests/lesson-engine.test.cjs
+├── package.json
 ├── README.md
 └── .gitignore
 ```
@@ -135,6 +155,16 @@ cd codescope
 For the current static version, you can open `index.html` directly in a browser.
 
 For a better local development experience, you can also use a simple local server such as the VS Code Live Server extension.
+
+## Tests
+
+The execution tests use Node.js's built-in test runner with no dependencies:
+
+```bash
+npm test
+```
+
+They cover arithmetic precedence, both conditional branches, loops and output history, function frames and returns, source line mapping, invalid input, and execution limits. The site itself still runs as static HTML/CSS/JavaScript without a build step.
 
 ## Deployment
 
@@ -161,25 +191,26 @@ GitHub Pages automatically deploys the updated version.
 - [x] If statements
 - [x] For loops
 - [x] Functions
-- [ ] Editable code panel
+- [x] Editable code panel (focused syntax in all six lessons)
 - [ ] Lists
 - [ ] Dictionaries
 - [ ] Tuples
 - [ ] Sets
 - [ ] While loops
-- [ ] Function parameters and return values
-- [ ] Scope visualization
+- [x] Function parameters and return values (positional arguments)
+- [x] Scope visualization (global and local function frames)
 - [ ] References and mutation
 - [ ] Common beginner errors
 
 ### Phase 2 — Real Execution Engine
 
-- [ ] Parse supported Python input
-- [ ] Generate structured execution events
-- [ ] Track variable creation and updates
-- [ ] Track execution line-by-line
-- [ ] Support user-entered Python examples
-- [ ] Add safe execution limits
+- [x] Parse a focused Python subset
+- [x] Generate structured execution events for supported lessons
+- [x] Track variable creation and updates for supported lessons
+- [x] Track execution line-by-line for supported lessons
+- [x] Support user-entered examples within the documented subset
+- [x] Add execution limits to the lesson interpreter
+- [ ] Expand toward a full sandboxed Python runtime
 
 ### Phase 3 — Computer Science Visualization
 
