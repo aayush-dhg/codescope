@@ -7,6 +7,46 @@ run = TRACE['trace_program']
 
 
 class PythonTracerTests(unittest.TestCase):
+    def test_guided_assignments_reassignment_and_prints(self):
+        result = run('x = 5\nx = x + 2\nprint(x)\nprint(x * 3)', guided=True)
+        self.assertIsNone(result['error'])
+        steps = result['steps']
+        self.assertEqual([step['line'] for step in steps], [1, 2, 3, 4, 4])
+        self.assertEqual(steps[0]['visual']['event'], 'variable_created')
+        self.assertEqual(steps[1]['visual']['event'], 'variable_updated')
+        self.assertEqual(steps[1]['variables']['x'], '7')
+        self.assertEqual(steps[2]['visual']['activeNames'], ['x'])
+        self.assertEqual(steps[2]['output'], '7\n')
+        self.assertEqual(steps[3]['output'], '7\n21\n')
+        self.assertEqual(steps[3]['visual']['printedValues'][0]['value'], repr('21\n'))
+
+    def test_guided_blank_lines_comments_and_multiple_variables(self):
+        result = run('# comment\n\na = 2\nb = a * 4\na += 1\nprint(a, b, sep=" / ")', guided=True)
+        self.assertEqual([step['line'] for step in result['steps']], [3, 4, 5, 6, 6])
+        self.assertEqual(result['steps'][-1]['output'], '3 / 8\n')
+        self.assertEqual(result['steps'][-2]['visual']['activeNames'], ['a', 'b'])
+
+    def test_guided_failed_statement_is_not_shown_as_successful(self):
+        result = run('x = 3\ny = 1 / 0', guided=True)
+        self.assertIn('ZeroDivisionError', result['error'])
+        self.assertEqual(result['steps'][0]['variables']['x'], '3')
+        self.assertFalse(any(step['line'] == 2 and step['visual']['event'] == 'variable_created' for step in result['steps']))
+
+    def test_guided_function_calls_and_nested_prints(self):
+        result = run('def f():\n    print("inside")\n    return 4\nx = f()\nprint(f())', guided=True)
+        self.assertIsNone(result['error'])
+        self.assertEqual(result['steps'][-1]['output'], 'inside\ninside\n4\n')
+        prints = [step for step in result['steps'] if step['visual']['event'] == 'variables_read']
+        self.assertEqual([step['visual']['printedValues'][0]['value'] for step in prints], [repr('inside\n'), repr('inside\n'), repr('4\n')])
+        assignment = next(step for step in result['steps'] if step['line'] == 4 and step['visual']['event'] == 'variable_created')
+        self.assertEqual(assignment['variables']['x'], '4')
+
+    def test_guided_shadowed_print_multiline_and_loops(self):
+        result = run('print = lambda x: x\ny = print(2)\nvalues = [\n    1,\n    2\n]\nfor n in values:\n    y += n', guided=True)
+        self.assertIsNone(result['error'])
+        self.assertEqual(result['steps'][-1]['variables']['y'], '5')
+        self.assertFalse(any(step['visual']['event'] == 'variables_read' for step in result['steps']))
+
     def test_real_python_recursion_comprehensions_and_imports(self):
         result = run('import math\ndef f(n):\n    return 1 if n < 2 else n * f(n-1)\nvalues = {n: f(n) for n in range(3, 6)}\nprint(values, math.sqrt(9))')
         self.assertIsNone(result['error'])

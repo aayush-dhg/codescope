@@ -1,6 +1,6 @@
 /* Worker lifecycle is separate from the lesson UI and injectable for tests. */
 class PythonPlayground {
-  constructor({ createWorker = () => new Worker('./python-worker.js?v=1', { type: 'module' }),
+  constructor({ createWorker = () => new Worker('./python-worker.js?v=2', { type: 'module' }),
     schedule = (fn, ms) => setTimeout(fn, ms), cancel = id => clearTimeout(id), loadTimeout = 90000, runTimeout = 10000 } = {}) {
     Object.assign(this, { createWorker, schedule, cancel, loadTimeout, runTimeout });
     this.active = null;
@@ -10,7 +10,7 @@ class PythonPlayground {
     if (this.active) this.active.finish({ error: message, steps: [] });
   }
 
-  run(source, stdin, onStatus = () => {}) {
+  run(source, stdin, onStatus = () => {}, { guided = false } = {}) {
     this.stop();
     if (source.length > 20000 || stdin.length > 8000) {
       return Promise.resolve({ steps: [], error: 'Use at most 20,000 code characters and 8,000 input characters.' });
@@ -47,7 +47,7 @@ class PythonPlayground {
         run.finish({ steps: [], error: 'Python could not load or the worker failed. Check your connection and try again.' });
       };
       worker.onmessageerror = () => run.finish({ steps: [], error: 'Could not read Python execution results. Please try again.' });
-      try { worker.postMessage({ type: 'run', source, stdin }); }
+      try { worker.postMessage({ type: 'run', source, stdin, guided }); }
       catch { run.finish({ steps: [], error: 'Could not send code to Python. Please try again.' }); }
     });
   }

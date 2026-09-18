@@ -1,9 +1,12 @@
 """Bounded, observational snapshots for CodeScope's real-Python Playground.
 
-Line events describe state BEFORE the highlighted line. Only the user's source
-is traced; imports execute normally without filling the timeline with internals.
+Default line events describe state BEFORE the highlighted line. Guided mode
+reports completed simple statements with assignment and print animations.
+Only the user's source is traced; imports execute normally without filling the timeline with internals.
 This is a teaching tracer, not a security boundary for hostile Python.
 """
+import ast
+import builtins
 import contextlib
 import io
 import itertools
@@ -69,7 +72,7 @@ def snapshot(namespace):
     return result
 
 
-def trace_program(source, stdin=''):
+def trace_program(source, stdin='', guided=False):
     filename = 'playground.py'
     steps = []
     namespace = {'__name__': '__main__'}
@@ -79,6 +82,9 @@ def trace_program(source, stdin=''):
     last_line = 1
     error = None
     lines = source.splitlines()
+    statements = {}
+    pending = {}
+    written = {}
 
     class Output(io.TextIOBase):
         def writable(self):
@@ -88,6 +94,10 @@ def trace_program(source, stdin=''):
             nonlocal output_size
             room = max(0, 8000 - output_size)
             captured.append(text[:room])
+            if guided:
+                caller = sys._getframe(1)
+                if id(caller) in pending:
+                    written.setdefault(id(caller), []).append(text[:room])
             output_size += min(len(text), room)
             if len(text) > room:
                 raise TraceLimit('Output limit reached (8,000 characters).')
@@ -106,7 +116,7 @@ def trace_program(source, stdin=''):
             scopes.append({'name': frame.f_code.co_name + '() · Local', 'objects': snapshot(frame.f_locals)})
         return scopes
 
-    def add_step(line, event, title, detail, scopes, flow, bounded=True):
+    def add_step(line, event, title, detail, scopes, flow, bounded=True, active=None, printed=None):
         nonlocal snapshot_size
         output = ''.join(captured)
         objects = scopes[-1]['objects']
@@ -119,18 +129,65 @@ def trace_program(source, stdin=''):
                 'variables': {obj['name']: obj['value'] for obj in objects},
                 'output': output, 'hasOutput': bool(output),
                 'visual': {'lesson': True, 'event': event, 'title': title, 'detail': detail,
-                           'flow': flow, 'activeNames': changed, 'objects': objects, 'scopes': scopes}}
+                           'flow': flow, 'activeNames': changed if active is None else active,
+                           'objects': objects, 'scopes': scopes}}
+        if printed is not None:
+            step['visual']['printedValues'] = [{'value': preview(printed), 'valueType': 'string', 'typeName': 'output'}]
         snapshot_size += len(json.dumps(step))
         if bounded and (len(steps) >= 500 or snapshot_size > 2_000_000):
             raise TraceLimit('Trace limit reached (500 events or 2 MB of snapshots). Try a smaller example.')
         steps.append(step)
+
+    def finish_line(frame):
+        record = pending.pop(id(frame), None)
+        if record is None:
+            return
+        line, before, reads, is_print = record
+        scopes = scopes_for(frame)
+        current = {obj['name']: obj['value'] for obj in scopes[-1]['objects']}
+        changed = [name for name in current if current[name] != before.get(name)]
+        removed = [name for name in before if name not in current]
+        output_delta = ''.join(written.pop(id(frame), []))
+        if is_print and output_delta:
+            detail = 'print() reads its arguments and writes %s to the console.' % preview(output_delta)
+            add_step(line, 'variables_read', 'Values sent to print()', detail, scopes,
+                     [preview(output_delta), '→', 'print()', '→', 'Console'],
+                     active=reads, printed=output_delta)
+        elif changed or removed:
+            descriptions = [('%s now refers to %s.' if name in before else '%s is created with %s.') % (name, current[name]) for name in changed]
+            descriptions += ['%s is removed from this scope.' % name for name in removed]
+            add_step(line, 'variable_updated' if any(name in before for name in changed) or removed else 'variable_created',
+                     'Variables after line %d' % line, ' '.join(descriptions), scopes,
+                     ['%s → %s' % (name, current[name]) for name in changed] or ['Name removed'], active=changed)
+        else:
+            add_step(line, 'executed', 'After line %d' % line,
+                     'Line %d finished. The visible variable previews are unchanged.' % line,
+                     scopes, [lines[line - 1].strip()[:240]], active=[])
 
     def trace(frame, event, arg):
         nonlocal last_line
         if frame.f_code.co_filename != filename:
             return None
         last_line = frame.f_lineno
+        if guided:
+            if event in ('line', 'return'):
+                finish_line(frame)
+            elif event == 'exception':
+                # A failing statement must not be described as successfully executed.
+                pending.pop(id(frame), None)
+                written.pop(id(frame), None)
         if event == 'line':
+            nodes = statements.get(last_line, [])
+            simple = (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Expr, ast.Delete, ast.Import, ast.ImportFrom, ast.Pass)
+            if guided and nodes and all(isinstance(node, simple) and node.end_lineno == last_line for node in nodes):
+                node = nodes[0]
+                is_print = (len(nodes) == 1 and isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+                            and isinstance(node.value.func, ast.Name) and node.value.func.id == 'print'
+                            and frame.f_locals.get('print', frame.f_globals.get('print', builtins.print)) is builtins.print)
+                reads = [arg.id for arg in node.value.args if isinstance(arg, ast.Name)] if is_print else []
+                before = {obj['name']: obj['value'] for obj in snapshot(frame.f_locals)}
+                pending[id(frame)] = (last_line, before, reads, is_print)
+                return trace
             text = lines[last_line - 1].strip() if 0 < last_line <= len(lines) else ''
             add_step(last_line, 'line', 'Before line %d' % last_line,
                      'About to execute line %d. Variables and output show the state before this line.' % last_line,
@@ -156,6 +213,10 @@ def trace_program(source, stdin=''):
         if len(source) > 20000:
             raise TraceLimit('Source limit reached (20,000 characters).')
         code = compile(source, filename, 'exec')
+        if guided:
+            for node in ast.walk(ast.parse(source, filename)):
+                if isinstance(node, ast.stmt):
+                    statements.setdefault(node.lineno, []).append(node)
         sys.stdin = io.StringIO(stdin)
         with contextlib.redirect_stdout(Output()), contextlib.redirect_stderr(Output()):
             sys.settrace(trace)

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="CodeScope helps learners see how Python code executes step by step." />
   <title>CodeScope — See how Python works</title>
-  <link rel="stylesheet" href="./styles.css?v=20260916-2" />
+  <link rel="stylesheet" href="./styles.css?v=20260917-2" />
 </head>
 <body>
   <div class="app-shell">
@@ -64,10 +64,12 @@
 
             <div id="editorWrap" class="editor-wrap">
               <div id="lineNumbers" class="line-numbers" aria-hidden="true"></div>
+              <div id="executionLine" class="execution-line" aria-hidden="true" hidden></div>
               <textarea
                 id="codeEditor"
                 class="code-editor-input"
                 spellcheck="false"
+                wrap="off"
                 aria-label="Python code editor"
               ></textarea>
             </div>
@@ -78,7 +80,7 @@
               <details>
                 <summary>What can I run?</summary>
                 <p>Real Python supports loops, recursion, classes, comprehensions, and browser-compatible standard-library modules. Packages such as NumPy are not preloaded. Desktop windows, system processes, and access to your computer’s files are unavailable.</p>
-                <p>Runs stop after 10 seconds, 500 trace events, or 8,000 output characters. Each run starts fresh. Values are shown as bounded previews. Line steps show state <strong>before</strong> the line executes; the final step shows the completed result. Play/Pause controls replay; Stop execution cancels a running program.</p>
+                <p>Runs stop after 10 seconds, 500 trace events, or 8,000 output characters. Each run starts fresh. Values are shown as bounded previews. Variables lessons explain completed assignments and prints; other line steps are labeled <strong>before</strong> execution. Play/Pause controls replay; Stop execution cancels a running program.</p>
               </details>
             </div>
             <div id="editorMessage" class="editor-message" aria-live="polite">
@@ -157,7 +159,7 @@
   </div>
 
   <script src="./lesson-engine.js?v=20260916-1"></script>
-  <script src="./playground.js?v=1"></script>
-  <script src="./app.js?v=20260916-2"></script>
+  <script src="./playground.js?v=2"></script>
+  <script src="./app.js?v=20260917-1"></script>
 </body>
 </html>

@@ -35,7 +35,7 @@ The current prototype includes:
 
 - Beginner-friendly Python topic navigation
 - Step-by-step execution playback
-- Current execution line indicator
+- Current execution line highlighting with synchronized line numbers and scrolling
 - Variable state visualization
 - Animated variable-to-object memory view for numbers, strings, and booleans
 - Visual value movement from a variable to `print()`
@@ -62,19 +62,21 @@ The current prototype includes:
 
 ### Guided Lesson Editing
 
-- **Variables / Multiple Variables:** literal assignments followed by `print()`; retain their existing lesson constraints.
+- **Variables / Multiple Variables:** real Python via the same worker as the Playground. Use expressions, reassignment, multiple `print()` calls, functions, or other browser-compatible Python. Click **Run Python** to generate the timeline; successful runs start at the first step for guided playback.
 - **Arithmetic:** assignments, reassignment, numeric `+ - * / // %`, parentheses, unary signs, string concatenation, and `print()`.
 - **If Statements:** the above plus `if` / `else`, a single comparison per expression (`== != < > <= >=`), and nested conditions.
 - **For Loops:** the above plus lists and `for item in list` or `for item in range(start, stop, step)`. `range()` is supported directly in loop headers. Empty and descending ranges work.
 - **Functions:** top-level `def`, positional arguments, local variables, global reads, `return`, implicit `None`, and the above control flow. Local frames are shown during calls and removed on return.
 
-Use spaces for indentation. Blank lines and comments retain their original source line numbers. Unsupported syntax and invalid input show a line-specific error; editing invalidates the old playback until **Apply changes** is clicked.
+Use spaces for indentation. Blank lines and comments retain their original source line numbers. Unsupported syntax and invalid input show a line-specific error; editing invalidates the old playback until **Run Python** (variable lessons) or **Apply changes** (the other lessons) is clicked.
 
-These six guided lessons use a teaching subset, not a full Python runtime. Imports, recursion, mutation/indexing, `elif`, `while`, default/keyword arguments, and arbitrary built-ins are not supported. Numbers use JavaScript numeric storage and simplified formatting rather than separate Python integer/float objects. Execution is limited to 12,000 source characters, 120 nonempty lines, 100 values per loop, 300 emitted steps, and eight nested blocks/call frames, with an additional evaluation-work limit. Failed executions clear the visualization rather than showing partial results.
+Arithmetic, If Statements, For Loops, and Functions still use a teaching subset, not a full Python runtime. In these four lessons, imports, recursion, mutation/indexing, `elif`, `while`, default/keyword arguments, and arbitrary built-ins are not supported. Numbers use JavaScript numeric storage and simplified formatting rather than separate Python integer/float objects. Execution is limited to 12,000 source characters, 120 nonempty lines, 100 values per loop, 300 emitted steps, and eight nested blocks/call frames, with an additional evaluation-work limit. Failed executions clear the visualization rather than showing partial results.
+
+Variables and Multiple Variables use the Playground's runtime and limits. Their guided trace shows single-line assignments and print operations **after execution**, with memory updates and animated console output. Compound and multiline statements fall back to explicitly labeled before-line events; function and exception events remain visible. Blank lines and comments preserve source positions. Runtime errors retain earlier steps without presenting the failed statement as successful. The line highlight follows playback and clears when code or input is edited.
 
 ### Real-Python Playground
 
-Select **Python Playground**, edit the code, and click **Run Python**. It runs CPython through [Pyodide](https://pyodide.org/en/stable/usage/quickstart.html), pinned to version **314.0.7**, in a dedicated module Web Worker. The first run downloads the runtime from jsDelivr; loading requires network access. The existing six lessons do not download Python.
+Select **Python Playground**, edit the code, and click **Run Python**. It runs CPython through [Pyodide](https://pyodide.org/en/stable/usage/quickstart.html), pinned to version **314.0.7**, in a dedicated module Web Worker. Variables and Multiple Variables share this engine. The first run downloads the runtime from jsDelivr; loading requires network access. The other four guided lessons do not download Python.
 
 - Supports Python syntax including `while`, `elif`, recursion, comprehensions, indexing/mutation, classes, exception handling, and browser-compatible standard-library imports.
 - Enter answers for `input()` in the optional input box, one per line. Exhausted input raises `EOFError`.
@@ -88,14 +90,15 @@ This does not mean every Python application can run in a browser. Third-party pa
 
 ## Current Architecture
 
-CodeScope currently has two execution paths. The six guided lessons use focused builders plus the shared, bounded Python-subset interpreter in `lesson-engine.js`. The Python Playground uses Pyodide in a Web Worker and produces snapshots through `sys.settrace`. Both paths emit the same kind of timeline data for the visualization layer, while keeping the beginner lessons predictable and the Playground open-ended.
+CodeScope currently has two execution paths. Arithmetic, If Statements, For Loops, and Functions use the bounded Python-subset interpreter in `lesson-engine.js`. Variables, Multiple Variables, and the Playground use Pyodide in a Web Worker and produce snapshots through `sys.settrace`. The variable lessons request guided after-line events; the Playground retains before-line tracing. Both paths emit timeline data for the same visualization layer. The old fixed-pattern variable parsers have been removed.
 
 ```text
-Guided Lesson Code                 Python Playground Code
-      ↓                                      ↓
-Lesson Parser / Interpreter          Pyodide Worker + sys.settrace
-      ↓
-Execution Snapshots + Visual Events
+Four Subset Lessons          Variables / Multiple Variables / Playground
+        ↓                                      ↓
+Lesson Interpreter                  Pyodide Worker + sys.settrace
+        └──────────────────┬───────────────────┘
+                           ↓
+             Execution Snapshots + Visual Events
       ↓
 Visualization
       ↓
@@ -126,7 +129,7 @@ The current version intentionally uses a simple stack:
 - CSS
 - JavaScript
 - GitHub Pages
-- Pyodide / CPython (Playground only)
+- Pyodide / CPython (variable lessons and Playground)
 
 This keeps the first version lightweight while the product experience is being validated.
 
@@ -175,7 +178,7 @@ Start a static server (or use VS Code Live Server):
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000). The guided lessons can also open directly from `index.html`, but the Playground needs HTTP/HTTPS for its worker and tracer assets.
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Variables, Multiple Variables, and the Playground require HTTP/HTTPS for their worker and tracer assets. The four subset lessons can also run directly from `index.html`.
 
 ## Tests
 
@@ -233,7 +236,9 @@ GitHub Pages automatically deploys the updated version.
 - [x] Support user-entered examples within the documented subset
 - [x] Add execution limits to the lesson interpreter
 - [x] Add a real-Python Playground in a cancellable worker
-- [ ] Migrate guided lessons to the real-Python engine after validating the Playground
+- [x] Migrate Variables and Multiple Variables to real Python with guided animations
+- [x] Highlight the active source line during playback
+- [ ] Migrate Arithmetic, If Statements, For Loops, and Functions to the real-Python engine
 
 ### Phase 3 — Computer Science Visualization
 

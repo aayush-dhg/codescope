@@ -5,10 +5,10 @@ const topics = [
     title: "Variables",
     description: "Watch a value get stored in a variable.",
     editable: true,
-    buildSteps: buildVariableSteps,
-    editorHint: "Try changing the variable name or value, then click Apply changes.",
-    defaultCode: "x = 5\nprint(x)",
-    steps: []
+    realPython: true,
+    guided: true,
+    editorHint: "Edit the code, then click Run Python. Try x = x + 1 or add another print().",
+    defaultCode: "x = 5\nprint(x)"
   },
   {
     id: "multiple-variables",
@@ -16,10 +16,10 @@ const topics = [
     title: "Multiple Variables",
     description: "See multiple values exist in program state at the same time.",
     editable: true,
-    buildSteps: buildMultipleVariableSteps,
-    editorHint: "Try changing the variable names or values, then click Apply changes.",
-    defaultCode: 'name = "Maya"\nage = 24\nprint(name, age)',
-    steps: []
+    realPython: true,
+    guided: true,
+    editorHint: "Click Run Python to explore variables. Use expressions, reassign names, and print as often as you like.",
+    defaultCode: 'name = "Maya"\nage = 24\nprint(name, age)'
   },
   {
     id: "arithmetic",
@@ -88,6 +88,7 @@ const lessonDescription = document.getElementById("lessonDescription");
 const stepCounter = document.getElementById("stepCounter");
 const lineNumbers = document.getElementById("lineNumbers");
 const codeEditor = document.getElementById("codeEditor");
+const executionLine = document.getElementById("executionLine");
 const currentLineBadge = document.getElementById("currentLineBadge");
 const explanationCard = document.getElementById("explanationCard");
 const variablesView = document.getElementById("variablesView");
@@ -109,216 +110,6 @@ const nextButton = document.getElementById("nextButton");
 const playButton = document.getElementById("playButton");
 const speedSelect = document.getElementById("speedSelect");
 
-function parseLiteral(rawValue) {
-  const value = rawValue.trim();
-
-  if (/^-?\d+(\.\d+)?$/.test(value)) {
-    return Number(value);
-  }
-
-  if (value === "True") return true;
-  if (value === "False") return false;
-
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    return value.slice(1, -1);
-  }
-
-  throw new Error("For now, editable lessons support numbers, booleans, and strings.");
-}
-
-function displayValue(value) {
-  if (typeof value === "string") return `"${value}"`;
-  if (typeof value === "boolean") return value ? "True" : "False";
-  return String(value);
-}
-
-function getValueType(value) {
-  if (typeof value === "number") return "number";
-  if (typeof value === "boolean") return "boolean";
-  return "string";
-}
-
-function outputValue(value) {
-  if (typeof value === "boolean") return displayValue(value);
-  return String(value);
-}
-
-function displayVariables(variableValues) {
-  return Object.fromEntries(
-    Object.entries(variableValues).map(([name, value]) => [name, displayValue(value)])
-  );
-}
-
-function buildVisualObjects(variableValues) {
-  return Object.entries(variableValues).map(([name, value]) => ({
-    name,
-    value: displayValue(value),
-    valueType: getValueType(value)
-  }));
-}
-
-function formatNameList(names) {
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
-}
-
-function buildVariableSteps(sourceCode) {
-  const lines = sourceCode
-    .replace(/\r/g, "")
-    .split("\n")
-    .filter(line => line.trim() !== "");
-
-  if (lines.length !== 2) {
-    throw new Error("Use exactly two lines: an assignment, then print(variable).");
-  }
-
-  const assignmentMatch = lines[0].match(/^\s*([A-Za-z_]\w*)\s*=\s*(.+)\s*$/);
-
-  if (!assignmentMatch) {
-    throw new Error("Line 1 should look like: x = 5");
-  }
-
-  const variableName = assignmentMatch[1];
-  const variableValue = parseLiteral(assignmentMatch[2]);
-
-  const printMatch = lines[1].match(/^\s*print\(\s*([A-Za-z_]\w*)\s*\)\s*$/);
-
-  if (!printMatch) {
-    throw new Error(`Line 2 should look like: print(${variableName})`);
-  }
-
-  if (printMatch[1] !== variableName) {
-    throw new Error(`You created ${variableName}, so print(${variableName}) to display it.`);
-  }
-
-  return [
-    {
-      line: 1,
-      explanation: `Python creates the variable ${variableName} and stores ${displayValue(variableValue)}.`,
-      variables: {
-        [variableName]: displayValue(variableValue)
-      },
-      execution: `${variableName} ← ${displayValue(variableValue)}`,
-      output: "",
-      visual: {
-        event: "variable_created",
-        name: variableName,
-        value: displayValue(variableValue),
-        valueType: getValueType(variableValue)
-      }
-    },
-    {
-      line: 2,
-      explanation: `print(${variableName}) reads the current value of ${variableName} and sends it to the console.`,
-      variables: {
-        [variableName]: displayValue(variableValue)
-      },
-      execution: `Read ${variableName}\nCall print()`,
-      output: outputValue(variableValue),
-      visual: {
-        event: "variable_read",
-        name: variableName,
-        value: displayValue(variableValue),
-        valueType: getValueType(variableValue),
-        target: "print"
-      }
-    }
-  ];
-}
-
-function buildMultipleVariableSteps(sourceCode) {
-  const sourceLines = sourceCode
-    .replace(/\r/g, "")
-    .split("\n")
-    .map((text, index) => ({ text, lineNumber: index + 1 }))
-    .filter(({ text }) => text.trim() !== "");
-
-  if (sourceLines.length < 3 || sourceLines.length > 7) {
-    throw new Error("Use 2 to 6 assignment lines followed by one print(...) line.");
-  }
-
-  const assignmentLines = sourceLines.slice(0, -1);
-  const printLine = sourceLines.at(-1);
-  const variableValues = Object.create(null);
-  const steps = [];
-
-  assignmentLines.forEach(({ text, lineNumber }) => {
-    const assignmentMatch = text.match(/^\s*([A-Za-z_]\w*)\s*=\s*(.+)\s*$/);
-
-    if (!assignmentMatch) {
-      throw new Error(`Line ${lineNumber} should look like: name = "Maya"`);
-    }
-
-    const variableName = assignmentMatch[1];
-
-    if (Object.hasOwn(variableValues, variableName)) {
-      throw new Error(`${variableName} is assigned more than once. Use a unique name for each variable.`);
-    }
-
-    const variableValue = parseLiteral(assignmentMatch[2]);
-    variableValues[variableName] = variableValue;
-
-    steps.push({
-      line: lineNumber,
-      explanation: `Python creates ${variableName} and stores ${displayValue(variableValue)}.`,
-      variables: displayVariables(variableValues),
-      execution: `${variableName} ← ${displayValue(variableValue)}`,
-      output: "",
-      visual: {
-        event: "variable_created",
-        objects: buildVisualObjects(variableValues),
-        activeNames: [variableName]
-      }
-    });
-  });
-
-  const printMatch = printLine.text.match(/^\s*print\(\s*([^)]*?)\s*\)\s*$/);
-
-  if (!printMatch) {
-    throw new Error(`Line ${printLine.lineNumber} should look like: print(name, age)`);
-  }
-
-  const printedNames = printMatch[1]
-    .split(",")
-    .map(name => name.trim())
-    .filter(Boolean);
-
-  if (
-    printedNames.length < 2 ||
-    printedNames.some(name => !/^[A-Za-z_]\w*$/.test(name))
-  ) {
-    throw new Error("print(...) should contain at least two variable names separated by commas.");
-  }
-
-  if (new Set(printedNames).size < 2) {
-    throw new Error("Print at least two different variables in this lesson.");
-  }
-
-  const undefinedName = printedNames.find(name => !Object.hasOwn(variableValues, name));
-
-  if (undefinedName) {
-    throw new Error(`${undefinedName} has not been created yet.`);
-  }
-
-  steps.push({
-    line: printLine.lineNumber,
-    explanation: `Python reads ${formatNameList(printedNames)} and sends their values to the console.`,
-    variables: displayVariables(variableValues),
-    execution: `${printedNames.map(name => `Read ${name}`).join("\n")}\nCall print()`,
-    output: printedNames.map(name => outputValue(variableValues[name])).join(" "),
-    visual: {
-      event: "variables_read",
-      objects: buildVisualObjects(variableValues),
-      activeNames: printedNames,
-      target: "print"
-    }
-  });
-
-  return steps;
-}
 
 function renderTopics() {
   topicList.innerHTML = "";
@@ -341,10 +132,30 @@ function renderTopics() {
 function updateLineNumbers() {
   const lineCount = Math.max(1, codeEditor.value.split("\n").length);
 
-  lineNumbers.textContent = Array.from(
-    { length: lineCount },
-    (_, index) => index + 1
-  ).join("\n");
+  lineNumbers.replaceChildren(...Array.from({ length: lineCount }, (_, index) => {
+    const number = document.createElement("span");
+    number.textContent = index + 1;
+    return number;
+  }));
+}
+
+function highlightExecutionLine(line, reveal = false) {
+  const style = getComputedStyle(codeEditor);
+  const height = parseFloat(style.lineHeight);
+  const padding = parseFloat(style.paddingTop);
+  const valid = Number.isInteger(line) && line >= 1 && line <= lineNumbers.children.length;
+  executionLine.hidden = !valid;
+  for (const number of lineNumbers.children) {
+    number.classList.toggle("is-current", valid && Number(number.textContent) === line);
+  }
+  if (!valid) return;
+  const top = padding + (line - 1) * height;
+  if (reveal && (top < codeEditor.scrollTop || top + height > codeEditor.scrollTop + codeEditor.clientHeight)) {
+    codeEditor.scrollTop = Math.max(0, top - codeEditor.clientHeight / 2);
+  }
+  lineNumbers.scrollTop = codeEditor.scrollTop;
+  executionLine.style.top = `${top - codeEditor.scrollTop}px`;
+  executionLine.style.height = `${height}px`;
 }
 
 function renderVariables(variables) {
@@ -420,7 +231,7 @@ function renderLessonVisual(visual) {
       const row = document.createElement("div");
       const isCurrentScope = scope === visual.scopes.at(-1);
       const active = isCurrentScope && visual.activeNames.includes(object.name);
-      row.className = "memory-diagram" + (active ? "" : " is-settled");
+      row.className = "memory-diagram" + (active ? visual.printedValues ? " is-read" : "" : " is-settled");
       const name = document.createElement("div");
       name.className = "variable-node";
       name.textContent = object.name;
@@ -439,6 +250,22 @@ function renderLessonVisual(visual) {
     frame.appendChild(memory);
     objectView.appendChild(frame);
   });
+  if (visual.printedValues) {
+    const journey = document.createElement("div");
+    journey.className = "print-journey";
+    const values = document.createElement("div");
+    values.className = "travelling-values";
+    values.setAttribute("aria-hidden", "true");
+    visual.printedValues.forEach(value => values.appendChild(createValueObject(value, "travelling-value")));
+    const path = document.createElement("div");
+    path.className = "journey-line";
+    path.setAttribute("aria-hidden", "true");
+    const target = document.createElement("div");
+    target.className = "print-target";
+    target.textContent = "print()";
+    journey.append(values, path, target);
+    objectView.appendChild(journey);
+  }
   const caption = document.createElement("p");
   caption.className = "object-view-caption";
   caption.textContent = visual.detail;
@@ -447,103 +274,14 @@ function renderLessonVisual(visual) {
 
 function renderObjectView(visual) {
   objectView.replaceChildren();
-
-  if (!visual) {
-    objectViewBlock.hidden = true;
-    return;
-  }
-
-  if (visual.lesson) {
-    renderLessonVisual(visual);
-    return;
-  }
-
-  const objects = visual.objects || [
-    {
-      name: visual.name,
-      value: visual.value,
-      valueType: visual.valueType
-    }
-  ];
-  const orderedActiveNames = visual.activeNames || objects.map(object => object.name);
-  const activeNames = new Set(orderedActiveNames);
-  const isReadEvent = visual.event.includes("read");
-
-  objectViewBlock.hidden = false;
-  objectViewTitle.textContent = objects.length > 1 ? "Variables in memory" : "Variable in memory";
-  visualEventBadge.textContent = isReadEvent
-    ? objects.length > 1 ? "Values read" : "Value read"
-    : "Object created";
-
-  const memoryMap = document.createElement("div");
-  memoryMap.className = "memory-map";
-
-  objects.forEach(object => {
-    const memoryDiagram = document.createElement("div");
-    const isActive = activeNames.has(object.name);
-    memoryDiagram.className = `memory-diagram${isActive ? "" : " is-settled"}${isReadEvent && isActive ? " is-read" : ""}`;
-
-    const variableNode = document.createElement("div");
-    variableNode.className = "variable-node";
-    variableNode.textContent = object.name;
-
-    const referenceArrow = document.createElement("div");
-    referenceArrow.className = "reference-arrow";
-    referenceArrow.setAttribute("aria-hidden", "true");
-
-    const valueObject = createValueObject(object);
-    memoryDiagram.append(variableNode, referenceArrow, valueObject);
-    memoryMap.appendChild(memoryDiagram);
-  });
-
-  objectView.appendChild(memoryMap);
-
-  const relationship = document.createElement("p");
-  relationship.className = "object-view-caption";
-  const activeObjects = orderedActiveNames
-    .map(name => objects.find(object => object.name === name))
-    .filter(Boolean);
-  const activeObject = activeObjects[0];
-  relationship.textContent = objects.length > 1
-    ? `${activeObject.name} is created now. Earlier variables stay visible because they still exist in memory.`
-    : `${activeObject.name} refers to this ${activeObject.valueType} object in memory.`;
-  objectView.appendChild(relationship);
-
-  if (isReadEvent) {
-    const printJourney = document.createElement("div");
-    printJourney.className = "print-journey";
-
-    const travellingValues = document.createElement("div");
-    travellingValues.className = "travelling-values";
-    travellingValues.setAttribute("aria-hidden", "true");
-
-    activeObjects.forEach(object => {
-      travellingValues.appendChild(createValueObject(object, "travelling-value"));
-    });
-
-    const journeyLine = document.createElement("div");
-    journeyLine.className = "journey-line";
-    journeyLine.setAttribute("aria-hidden", "true");
-
-    const printTarget = document.createElement("div");
-    printTarget.className = "print-target";
-    printTarget.textContent = "print()";
-
-    printJourney.append(travellingValues, journeyLine, printTarget);
-    objectView.appendChild(printJourney);
-    const names = activeObjects.map(object => object.name);
-    if (names.length === 1) {
-      relationship.textContent = `Python reads ${names[0]}; its value moves to print().`;
-    } else {
-      const valueCount = names.length === 2 ? "Both values" : `All ${names.length} values`;
-      relationship.textContent = `Python reads ${formatNameList(names)}. ${valueCount} move to print().`;
-    }
-  }
+  objectViewBlock.hidden = !visual;
+  if (visual) renderLessonVisual(visual);
 }
 
 function renderStep() {
   const topic = topics[activeTopicIndex];
   const step = currentSteps[activeStepIndex];
+  highlightExecutionLine(step?.line, true);
 
   lessonCategory.textContent = topic.category;
   lessonTitle.textContent = topic.title;
@@ -592,6 +330,9 @@ function loadTopic() {
   const topic = topics[activeTopicIndex];
 
   codeEditor.value = topic.defaultCode;
+  codeEditor.scrollTop = 0;
+  codeEditor.scrollLeft = 0;
+  pythonInput.value = "";
   codeEditor.readOnly = !topic.editable;
   applyCodeButton.disabled = !topic.editable;
   applyCodeButton.textContent = topic.realPython ? "Run Python" : "Apply changes";
@@ -654,6 +395,7 @@ async function runPython() {
   cancelPython();
   stopPlayback();
   const generation = runGeneration;
+  const topic = topics[activeTopicIndex];
   pythonRunning = true;
   currentSteps = [];
   activeStepIndex = 0;
@@ -663,14 +405,14 @@ async function runPython() {
   renderStep();
   const result = await playground.run(codeEditor.value, pythonInput.value, message => {
     if (generation === runGeneration) setEditorMessage(message);
-  });
+  }, { guided: Boolean(topic.guided) });
   if (generation !== runGeneration) return;
   pythonRunning = false;
   stopPythonButton.disabled = true;
   applyCodeButton.disabled = false;
   currentSteps = result.steps || [];
-  activeStepIndex = Math.max(0, currentSteps.length - 1);
-  setEditorMessage(result.error || "Finished. Press Play to replay the timeline, or use Previous and Next to inspect each step.", result.error ? "error" : "success");
+  activeStepIndex = topic.guided && !result.error ? 0 : Math.max(0, currentSteps.length - 1);
+  setEditorMessage(result.error || (topic.guided ? "Ready. Use Next or Play to see assignments and printed values step by step." : "Finished. Press Play to replay the timeline, or use Previous and Next to inspect each step."), result.error ? "error" : "success");
   renderStep();
 }
 
@@ -759,7 +501,10 @@ codeEditor.addEventListener("input", () => {
 
 codeEditor.addEventListener("scroll", () => {
   lineNumbers.scrollTop = codeEditor.scrollTop;
+  highlightExecutionLine(currentSteps[activeStepIndex]?.line);
 });
+
+window.addEventListener("resize", () => highlightExecutionLine(currentSteps[activeStepIndex]?.line));
 
 codeEditor.addEventListener("keydown", event => {
   if (codeEditor.readOnly) return;

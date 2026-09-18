@@ -71,3 +71,15 @@ test('default timer functions support successful cleanup', async () => {
   assert.deepEqual(await pending, {steps:[]});
   assert.equal(worker.terminated, true);
 });
+
+test('guided tracing is opt-in and forwarded to the worker', async () => {
+  const f = fixture();
+  const guided = f.runner.run('x = 1', '', () => {}, {guided:true});
+  assert.equal(f.workers[0].sent.guided, true);
+  f.send({type:'result',result:{steps:[]}});
+  await guided;
+  const normal = f.runner.run('x = 1', '');
+  assert.equal(f.workers[1].sent.guided, false);
+  f.runner.stop();
+  await normal;
+});

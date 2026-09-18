@@ -6,13 +6,14 @@ self.onmessage = async ({ data }) => {
     self.postMessage({ type: 'status', message: 'Loading Python… The first run downloads the runtime.' });
     const { loadPyodide } = await import(PYODIDE_ROOT + 'pyodide.mjs');
     const pyodide = await loadPyodide({ indexURL: PYODIDE_ROOT, stdin: () => null });
-    const response = await fetch(new URL('./python-tracer.py?v=1', self.location.href));
+    const response = await fetch(new URL('./python-tracer.py?v=2', self.location.href));
     if (!response.ok) throw new Error('Could not load the Python tracer. Refresh and try again.');
     pyodide.runPython(await response.text());
     pyodide.globals.set('_codescope_source', data.source);
     pyodide.globals.set('_codescope_stdin', data.stdin || '');
+    pyodide.globals.set('_codescope_guided', data.guided === true);
     self.postMessage({ type: 'running' });
-    const result = pyodide.runPython('json.dumps(trace_program(_codescope_source, _codescope_stdin))');
+    const result = pyodide.runPython('json.dumps(trace_program(_codescope_source, _codescope_stdin, _codescope_guided))');
     self.postMessage({ type: 'result', result: JSON.parse(result) });
   } catch (error) {
     self.postMessage({ type: 'error', message: 'Python could not run: ' + String(error.message || error).slice(0, 1200) });
