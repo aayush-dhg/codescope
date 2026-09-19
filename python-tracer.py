@@ -116,7 +116,7 @@ def trace_program(source, stdin='', guided=False):
             scopes.append({'name': frame.f_code.co_name + '() · Local', 'objects': snapshot(frame.f_locals)})
         return scopes
 
-    def add_step(line, event, title, detail, scopes, flow, bounded=True, active=None, printed=None):
+    def add_step(line, event, title, detail, scopes, flow, bounded=True, active=None, printed=None, changes=None):
         nonlocal snapshot_size
         output = ''.join(captured)
         objects = scopes[-1]['objects']
@@ -133,6 +133,8 @@ def trace_program(source, stdin='', guided=False):
                            'objects': objects, 'scopes': scopes}}
         if printed is not None:
             step['visual']['printedValues'] = [{'value': preview(printed), 'valueType': 'string', 'typeName': 'output'}]
+        if changes:
+            step['visual']['changes'] = changes
         snapshot_size += len(json.dumps(step))
         if bounded and (len(steps) >= 500 or snapshot_size > 2_000_000):
             raise TraceLimit('Trace limit reached (500 events or 2 MB of snapshots). Try a smaller example.')
@@ -144,7 +146,7 @@ def trace_program(source, stdin='', guided=False):
             return
         line, before, reads, is_print = record
         scopes = scopes_for(frame)
-        current = {obj['name']: obj['value'] for obj in scopes[-1]['objects']}
+        current = {obj['name']: obj for obj in scopes[-1]['objects']}
         changed = [name for name in current if current[name] != before.get(name)]
         removed = [name for name in before if name not in current]
         output_delta = ''.join(written.pop(id(frame), []))
@@ -154,11 +156,21 @@ def trace_program(source, stdin='', guided=False):
                      [preview(output_delta), '→', 'print()', '→', 'Console'],
                      active=reads, printed=output_delta)
         elif changed or removed:
-            descriptions = [('%s now refers to %s.' if name in before else '%s is created with %s.') % (name, current[name]) for name in changed]
+            descriptions = [('%s changes from %s to %s.' % (name, before[name]['value'], current[name]['value'])
+                             if name in before else '%s is created with %s.' % (name, current[name]['value']))
+                            for name in changed]
             descriptions += ['%s is removed from this scope.' % name for name in removed]
+            changes = [
+                {'name': name, 'kind': 'updated' if name in before else 'created',
+                 'from': before.get(name), 'to': current[name]}
+                for name in changed
+            ]
+            changes += [{'name': name, 'kind': 'removed', 'from': before[name], 'to': None}
+                        for name in removed]
             add_step(line, 'variable_updated' if any(name in before for name in changed) or removed else 'variable_created',
                      'Variables after line %d' % line, ' '.join(descriptions), scopes,
-                     ['%s → %s' % (name, current[name]) for name in changed] or ['Name removed'], active=changed)
+                     ['%s → %s' % (name, current[name]['value']) for name in changed] or ['Name removed'],
+                     active=changed, changes=changes)
         else:
             add_step(line, 'executed', 'After line %d' % line,
                      'Line %d finished. The visible variable previews are unchanged.' % line,
@@ -185,7 +197,7 @@ def trace_program(source, stdin='', guided=False):
                             and isinstance(node.value.func, ast.Name) and node.value.func.id == 'print'
                             and frame.f_locals.get('print', frame.f_globals.get('print', builtins.print)) is builtins.print)
                 reads = [arg.id for arg in node.value.args if isinstance(arg, ast.Name)] if is_print else []
-                before = {obj['name']: obj['value'] for obj in snapshot(frame.f_locals)}
+                before = {obj['name']: obj for obj in snapshot(frame.f_locals)}
                 pending[id(frame)] = (last_line, before, reads, is_print)
                 return trace
             text = lines[last_line - 1].strip() if 0 < last_line <= len(lines) else ''

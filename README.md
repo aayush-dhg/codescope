@@ -38,6 +38,7 @@ The current prototype includes:
 - Current execution line highlighting with synchronized line numbers and scrolling
 - Variable state visualization
 - Animated variable-to-object memory view for numbers, strings, and booleans
+- Old-to-new value transitions when a variable is reassigned
 - Visual value movement from a variable to `print()`
 - Editable code in all six lessons
 - Animated arithmetic, branch decisions, loop iterations, and function calls

@@ -7,8 +7,8 @@ const topics = [
     editable: true,
     realPython: true,
     guided: true,
-    editorHint: "Edit the code, then click Run Python. Try x = x + 1 or add another print().",
-    defaultCode: "x = 5\nprint(x)"
+    editorHint: "Edit the code, then click Run Python. Watch x change from its old value to its new value.",
+    defaultCode: "x = 5\nx = x + 2\nprint(x)"
   },
   {
     id: "multiple-variables",
@@ -203,6 +203,40 @@ function createValueObject(visual, extraClass = "") {
   return valueObject;
 }
 
+function renderVariableChanges(visual) {
+  const updates = (visual.changes || []).filter(change =>
+    change.kind === "updated" && change.from && change.to
+  );
+
+  if (!updates.length) return;
+
+  const changes = document.createElement("div");
+  changes.className = "variable-changes";
+
+  updates.forEach(change => {
+    const transition = document.createElement("div");
+    transition.className = "variable-change";
+
+    const name = document.createElement("span");
+    name.className = "variable-change-name";
+    name.textContent = change.name;
+
+    const oldValue = createValueObject(change.from, "previous-value");
+
+    const arrow = document.createElement("span");
+    arrow.className = "change-arrow";
+    arrow.textContent = "→";
+    arrow.setAttribute("aria-label", "changes to");
+
+    const newValue = createValueObject(change.to, "updated-value");
+
+    transition.append(name, oldValue, arrow, newValue);
+    changes.appendChild(transition);
+  });
+
+  objectView.appendChild(changes);
+}
+
 function renderLessonVisual(visual) {
   objectViewBlock.hidden = false;
   objectViewTitle.textContent = visual.title;
@@ -218,6 +252,8 @@ function renderLessonVisual(visual) {
     flow.appendChild(token);
   });
   objectView.appendChild(flow);
+
+  renderVariableChanges(visual);
 
   visual.scopes.forEach(scope => {
     const frame = document.createElement("section");

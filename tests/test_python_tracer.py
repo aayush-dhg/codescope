@@ -15,6 +15,12 @@ class PythonTracerTests(unittest.TestCase):
         self.assertEqual(steps[0]['visual']['event'], 'variable_created')
         self.assertEqual(steps[1]['visual']['event'], 'variable_updated')
         self.assertEqual(steps[1]['variables']['x'], '7')
+        self.assertEqual(steps[1]['visual']['changes'], [{
+            'name': 'x',
+            'kind': 'updated',
+            'from': {'name': 'x', 'value': '5', 'valueType': 'number', 'typeName': 'int'},
+            'to': {'name': 'x', 'value': '7', 'valueType': 'number', 'typeName': 'int'},
+        }])
         self.assertEqual(steps[2]['visual']['activeNames'], ['x'])
         self.assertEqual(steps[2]['output'], '7\n')
         self.assertEqual(steps[3]['output'], '7\n21\n')
