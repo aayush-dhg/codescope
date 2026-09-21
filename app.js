@@ -33,17 +33,6 @@ const topics = [
     defaultCode: "a = 8\nb = 3\ntotal = a + b\nprint(total)"
   },
   {
-    id: "lists",
-    category: "DATA STRUCTURES",
-    title: "Lists",
-    description: "Watch indexed values appear, change, and move as a Python list is mutated.",
-    editable: true,
-    realPython: true,
-    guided: true,
-    editorHint: "Click Run Python, then step through list creation, append, and indexed replacement.",
-    defaultCode: "numbers = [3, 1, 4]\nnumbers.append(2)\nnumbers[1] = 5\nprint(numbers)"
-  },
-  {
     id: "if-statement",
     category: "CONTROL FLOW",
     title: "If Statement",
@@ -249,92 +238,6 @@ function renderVariableChanges(visual) {
   objectView.appendChild(changes);
 }
 
-function renderArrayStages(visual) {
-  const arrays = visual.scopes.flatMap(scope =>
-    scope.objects
-      .filter(object => Array.isArray(object.items))
-      .map(object => ({ scope: scope.name, object }))
-  );
-
-  if (!arrays.length) return;
-
-  const collection = document.createElement("div");
-  collection.className = "array-stage-collection";
-
-  arrays.forEach(({ scope, object }) => {
-    const change = (visual.changes || []).find(item => item.name === object.name && item.to);
-    const previousItems = change?.from?.items || [];
-    const changedIndexes = new Set(change ? object.items
-      .filter((item, index) => !previousItems[index] || previousItems[index].value !== item.value)
-      .map(item => item.index) : []);
-
-    const stage = document.createElement("section");
-    stage.className = "array-stage" + (visual.activeNames.includes(object.name) ? " is-active" : "");
-
-    const heading = document.createElement("div");
-    heading.className = "array-stage-heading";
-    const name = document.createElement("strong");
-    name.textContent = object.name;
-    const metadata = document.createElement("span");
-    metadata.textContent = `${object.typeName} · ${object.itemCount} item${object.itemCount === 1 ? "" : "s"} · ${scope}`;
-    heading.append(name, metadata);
-
-    const viewport = document.createElement("div");
-    viewport.className = "array-stage-viewport";
-    const blocks = document.createElement("div");
-    blocks.className = "array-blocks";
-
-    const numericValues = object.items
-      .map(item => Number(item.value))
-      .filter(Number.isFinite)
-      .map(Math.abs);
-    const maximum = Math.max(1, ...numericValues);
-
-    object.items.forEach(item => {
-      const cell = document.createElement("div");
-      cell.className = "array-cell" + (changedIndexes.has(item.index) ? " is-changed" : "");
-
-      const pointer = document.createElement("span");
-      pointer.className = "array-pointer";
-      pointer.textContent = changedIndexes.has(item.index) ? "active" : "";
-
-      const block = document.createElement("div");
-      block.className = `array-block ${item.valueType}`;
-      const numericValue = Number(item.value);
-      const height = Number.isFinite(numericValue) ? 54 + Math.abs(numericValue) / maximum * 74 : 76;
-      block.style.setProperty("--block-height", `${height}px`);
-      block.textContent = item.value;
-      block.title = `${object.name}[${item.index}] = ${item.value}`;
-
-      const index = document.createElement("span");
-      index.className = "array-index";
-      index.textContent = `[${item.index}]`;
-      cell.append(pointer, block, index);
-      blocks.appendChild(cell);
-    });
-
-    if (!object.items.length) {
-      const empty = document.createElement("p");
-      empty.className = "array-empty";
-      empty.textContent = "Empty list — no indexed values yet";
-      blocks.appendChild(empty);
-    }
-
-    if (object.itemsTruncated) {
-      const more = document.createElement("div");
-      more.className = "array-more";
-      more.textContent = `+${object.itemCount - object.items.length} more`;
-      blocks.appendChild(more);
-    }
-
-    viewport.appendChild(blocks);
-    stage.append(heading, viewport);
-    collection.appendChild(stage);
-  });
-
-  objectView.appendChild(collection);
-}
-
 function renderLessonVisual(visual) {
   objectViewBlock.hidden = false;
   objectViewTitle.textContent = visual.title;
@@ -351,12 +254,9 @@ function renderLessonVisual(visual) {
   });
   objectView.appendChild(flow);
 
-  renderArrayStages(visual);
   renderVariableChanges(visual);
 
   visual.scopes.forEach(scope => {
-    const scopeObjects = scope.objects.filter(object => !Array.isArray(object.items));
-    if (!scopeObjects.length && scope.objects.some(object => Array.isArray(object.items))) return;
     const frame = document.createElement("section");
     frame.className = "lesson-frame";
     const heading = document.createElement("h5");
@@ -364,7 +264,7 @@ function renderLessonVisual(visual) {
     frame.appendChild(heading);
     const memory = document.createElement("div");
     memory.className = "memory-map";
-    scopeObjects.forEach(object => {
+    scope.objects.forEach(object => {
       const row = document.createElement("div");
       const isCurrentScope = scope === visual.scopes.at(-1);
       const active = isCurrentScope && visual.activeNames.includes(object.name);
@@ -378,7 +278,7 @@ function renderLessonVisual(visual) {
       row.append(name, arrow, createValueObject(object));
       memory.appendChild(row);
     });
-    if (!scopeObjects.length) {
+    if (!scope.objects.length) {
       const empty = document.createElement("p");
       empty.className = "object-view-caption";
       empty.textContent = "No variables in this frame yet.";

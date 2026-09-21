@@ -67,24 +67,8 @@ def snapshot(namespace):
             break
         kind = type(value)
         value_type = 'boolean' if kind is bool else 'number' if kind in (int, float, complex) else 'list' if kind in (list, tuple, dict, set, frozenset) else 'string'
-        visual = {'name': name[:120], 'value': preview(value), 'valueType': value_type,
-                  'typeName': type.__getattribute__(kind, '__name__')}
-        if kind in (list, tuple):
-            visual['items'] = [
-                {
-                    'index': index,
-                    'value': preview(item),
-                    'valueType': ('boolean' if type(item) is bool else
-                                  'number' if type(item) in (int, float, complex) else
-                                  'list' if type(item) in (list, tuple, dict, set, frozenset) else
-                                  'string'),
-                    'typeName': type.__getattribute__(type(item), '__name__'),
-                }
-                for index, item in enumerate(itertools.islice(value, 12))
-            ]
-            visual['itemCount'] = len(value)
-            visual['itemsTruncated'] = len(value) > 12
-        result.append(visual)
+        result.append({'name': name[:120], 'value': preview(value), 'valueType': value_type,
+                       'typeName': type.__getattribute__(kind, '__name__')})
     return result
 
 
