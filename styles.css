@@ -394,11 +394,177 @@ textarea {
 
 .object-view {
   min-height: 150px;
+  max-height: min(52vh, 520px);
+  overflow: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 12px;
+}
+
+.array-stage-collection {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 2px 10px;
+  scroll-snap-type: x proximity;
+}
+
+.array-stage {
+  flex: 1 0 min(100%, 480px);
+  min-width: 300px;
+  overflow: hidden;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 50% 15%, rgba(37, 99, 235, 0.2), transparent 42%),
+    linear-gradient(180deg, #0f172a, #111827);
+  color: #e2e8f0;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 12px 28px rgba(15, 23, 42, 0.16);
+  scroll-snap-align: start;
+}
+
+.array-stage.is-active {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12), 0 12px 30px rgba(15, 23, 42, 0.2);
+}
+
+.array-stage-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.array-stage-heading strong {
+  color: #7dd3fc;
+  font: 700 16px Consolas, monospace;
+}
+
+.array-stage-heading span {
+  color: #94a3b8;
+  font-size: 11px;
+  text-align: right;
+}
+
+.array-stage-viewport {
+  min-height: 196px;
+  overflow-x: auto;
+  padding: 30px 18px 18px;
+}
+
+.array-blocks {
+  min-width: max-content;
+  min-height: 146px;
+  display: flex;
+  align-items: flex-end;
+  gap: 13px;
+  padding: 0 8px;
+  border-bottom: 8px solid #475569;
+  box-shadow: 0 5px 0 #1e293b;
+}
+
+.array-cell {
+  position: relative;
+  width: 58px;
+  min-height: 138px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.array-pointer {
+  position: absolute;
+  top: -22px;
+  color: #86efac;
+  font: 700 10px Consolas, monospace;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.array-pointer::after {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  margin: 4px auto 0;
+  border-right: 7px solid transparent;
+  border-left: 7px solid transparent;
+  border-top: 10px solid #86efac;
+}
+
+.array-cell.is-changed .array-pointer {
+  opacity: 1;
+  animation: array-pointer-drops 420ms ease-out both;
+}
+
+.array-block {
+  --block-height: 76px;
+  position: relative;
+  z-index: 1;
+  width: 52px;
+  height: var(--block-height);
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  border: 1px solid #1d4ed8;
+  border-radius: 7px 7px 3px 3px;
+  background: linear-gradient(145deg, #334155, #1e3a5f);
+  color: #f8fafc;
+  box-shadow: inset 5px 0 rgba(255, 255, 255, 0.05), 6px 7px 0 rgba(2, 6, 23, 0.42);
+  font: 800 16px Consolas, monospace;
+  overflow-wrap: anywhere;
+  animation: array-block-arrives 460ms cubic-bezier(.2, .8, .2, 1.15) both;
+}
+
+.array-block::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 8px;
+  border-radius: 6px 6px 2px 2px;
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.array-cell.is-changed .array-block {
+  border-color: #4ade80;
+  background: linear-gradient(145deg, #16a34a, #047857);
+  animation-name: array-block-changes;
+}
+
+.array-index {
+  color: #7dd3fc;
+  font: 700 12px Consolas, monospace;
+}
+
+.array-empty,
+.array-more {
+  align-self: center;
+  color: #94a3b8;
+  font: 600 12px Consolas, monospace;
+}
+
+@keyframes array-block-arrives {
+  from { opacity: 0; transform: translateY(-16px) scale(0.88); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes array-block-changes {
+  0% { opacity: 0.35; transform: translateY(-28px) scale(0.82); }
+  65% { transform: translateY(4px) scale(1.06); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes array-pointer-drops {
+  from { opacity: 0; transform: translateY(-9px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .variable-changes {
@@ -845,6 +1011,24 @@ textarea {
 
 }
 
+@media (min-width: 1101px) {
+  .visualization-panel {
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    max-height: calc(100vh - 116px);
+  }
+
+  .visualization-panel .panel-header {
+    flex: 0 0 auto;
+  }
+
+  .visualization-content {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 760px) {
   .main-layout {
     grid-template-columns: 1fr;
@@ -1010,7 +1194,9 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lesson-flow-token { animation: none; }
+  .lesson-flow-token,
+  .array-block,
+  .array-pointer { animation: none; }
 }
 
 .playground-options {

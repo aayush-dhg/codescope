@@ -1,6 +1,6 @@
 /* Worker lifecycle is separate from the lesson UI and injectable for tests. */
 class PythonPlayground {
-  constructor({ createWorker = () => new Worker('./python-worker.js?v=2', { type: 'module' }),
+  constructor({ createWorker = () => new Worker('./python-worker.js?v=3', { type: 'module' }),
     schedule = (fn, ms) => setTimeout(fn, ms), cancel = id => clearTimeout(id), loadTimeout = 90000, runTimeout = 10000 } = {}) {
     Object.assign(this, { createWorker, schedule, cancel, loadTimeout, runTimeout });
     this.active = null;

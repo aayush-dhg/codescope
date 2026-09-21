@@ -44,6 +44,24 @@ class PythonTracerTests(unittest.TestCase):
         self.assertNotIn('total', expression['variables'])
         self.assertEqual(result['steps'][3]['variables']['total'], '8')
 
+    def test_guided_lists_include_bounded_indexed_items_and_mutations(self):
+        result = run('numbers = [3, 1, 4]\nnumbers.append(2)\nnumbers[1] = 5', guided=True)
+        self.assertIsNone(result['error'])
+        steps = [step for step in result['steps'] if step['visual']['event'] != 'complete']
+        created = steps[0]['visual']['objects'][0]
+        self.assertEqual([item['value'] for item in created['items']], ['3', '1', '4'])
+        self.assertEqual(created['itemCount'], 3)
+        appended = steps[1]['visual']['changes'][0]
+        self.assertEqual([item['value'] for item in appended['to']['items']], ['3', '1', '4', '2'])
+        replaced = steps[2]['visual']['changes'][0]
+        self.assertEqual(replaced['from']['items'][1]['value'], '1')
+        self.assertEqual(replaced['to']['items'][1]['value'], '5')
+
+        bounded = run('items = list(range(20))', guided=True)['steps'][0]['visual']['objects'][0]
+        self.assertEqual(len(bounded['items']), 12)
+        self.assertEqual(bounded['itemCount'], 20)
+        self.assertTrue(bounded['itemsTruncated'])
+
     def test_guided_blank_lines_comments_and_multiple_variables(self):
         result = run('# comment\n\na = 2\nb = a * 4\na += 1\nprint(a, b, sep=" / ")', guided=True)
         self.assertEqual([step['line'] for step in result['steps']], [3, 4, 4, 5, 6, 6])

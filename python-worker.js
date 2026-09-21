@@ -6,7 +6,7 @@ self.onmessage = async ({ data }) => {
     self.postMessage({ type: 'status', message: 'Loading Python… The first run downloads the runtime.' });
     const { loadPyodide } = await import(PYODIDE_ROOT + 'pyodide.mjs');
     const pyodide = await loadPyodide({ indexURL: PYODIDE_ROOT, stdin: () => null });
-    const response = await fetch(new URL('./python-tracer.py?v=2', self.location.href));
+    const response = await fetch(new URL('./python-tracer.py?v=3', self.location.href));
     if (!response.ok) throw new Error('Could not load the Python tracer. Refresh and try again.');
     pyodide.runPython(await response.text());
     pyodide.globals.set('_codescope_source', data.source);
