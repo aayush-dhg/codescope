@@ -11,24 +11,42 @@ class PythonTracerTests(unittest.TestCase):
         result = run('x = 5\nx = x + 2\nprint(x)\nprint(x * 3)', guided=True)
         self.assertIsNone(result['error'])
         steps = result['steps']
-        self.assertEqual([step['line'] for step in steps], [1, 2, 3, 4, 4])
+        self.assertEqual([step['line'] for step in steps], [1, 2, 2, 3, 4, 4])
         self.assertEqual(steps[0]['visual']['event'], 'variable_created')
-        self.assertEqual(steps[1]['visual']['event'], 'variable_updated')
-        self.assertEqual(steps[1]['variables']['x'], '7')
-        self.assertEqual(steps[1]['visual']['changes'], [{
+        self.assertEqual(steps[1]['visual']['event'], 'expression_evaluated')
+        self.assertEqual(steps[1]['visual']['expression'], 'x + 2')
+        self.assertEqual(steps[1]['visual']['inputs'], {'x': '5'})
+        self.assertEqual(steps[1]['visual']['result'], '7')
+        self.assertEqual(steps[1]['variables']['x'], '5')
+        self.assertEqual(steps[2]['visual']['event'], 'variable_updated')
+        self.assertEqual(steps[2]['variables']['x'], '7')
+        self.assertEqual(steps[2]['visual']['changes'], [{
             'name': 'x',
             'kind': 'updated',
             'from': {'name': 'x', 'value': '5', 'valueType': 'number', 'typeName': 'int'},
             'to': {'name': 'x', 'value': '7', 'valueType': 'number', 'typeName': 'int'},
         }])
-        self.assertEqual(steps[2]['visual']['activeNames'], ['x'])
-        self.assertEqual(steps[2]['output'], '7\n')
-        self.assertEqual(steps[3]['output'], '7\n21\n')
-        self.assertEqual(steps[3]['visual']['printedValues'][0]['value'], repr('21\n'))
+        self.assertEqual(steps[3]['visual']['activeNames'], ['x'])
+        self.assertEqual(steps[3]['output'], '7\n')
+        self.assertEqual(steps[4]['output'], '7\n21\n')
+        self.assertEqual(steps[4]['visual']['printedValues'][0]['value'], repr('21\n'))
+
+    def test_guided_computed_assignment_emits_expression_then_variable(self):
+        result = run('x = 5\ny = 3\ntotal = x + y', guided=True)
+        self.assertIsNone(result['error'])
+        events = [step['visual']['event'] for step in result['steps']]
+        self.assertEqual(events, ['variable_created', 'variable_created',
+                                  'expression_evaluated', 'variable_created', 'complete'])
+        expression = result['steps'][2]
+        self.assertEqual(expression['line'], 3)
+        self.assertEqual(expression['visual']['inputs'], {'x': '5', 'y': '3'})
+        self.assertEqual(expression['visual']['result'], '8')
+        self.assertNotIn('total', expression['variables'])
+        self.assertEqual(result['steps'][3]['variables']['total'], '8')
 
     def test_guided_blank_lines_comments_and_multiple_variables(self):
         result = run('# comment\n\na = 2\nb = a * 4\na += 1\nprint(a, b, sep=" / ")', guided=True)
-        self.assertEqual([step['line'] for step in result['steps']], [3, 4, 5, 6, 6])
+        self.assertEqual([step['line'] for step in result['steps']], [3, 4, 4, 5, 6, 6])
         self.assertEqual(result['steps'][-1]['output'], '3 / 8\n')
         self.assertEqual(result['steps'][-2]['visual']['activeNames'], ['a', 'b'])
 
@@ -37,6 +55,7 @@ class PythonTracerTests(unittest.TestCase):
         self.assertIn('ZeroDivisionError', result['error'])
         self.assertEqual(result['steps'][0]['variables']['x'], '3')
         self.assertFalse(any(step['line'] == 2 and step['visual']['event'] == 'variable_created' for step in result['steps']))
+        self.assertFalse(any(step['line'] == 2 and step['visual']['event'] == 'expression_evaluated' for step in result['steps']))
 
     def test_guided_function_calls_and_nested_prints(self):
         result = run('def f():\n    print("inside")\n    return 4\nx = f()\nprint(f())', guided=True)

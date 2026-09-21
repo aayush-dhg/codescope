@@ -27,8 +27,9 @@ const topics = [
     title: "Arithmetic",
     description: "Follow operands through a calculation into a new variable.",
     editable: true,
-    buildSteps: source => PythonLessons.build(source, "arithmetic"),
-    editorHint: "Edit numbers and expressions using +, -, *, /, //, %, and parentheses. Finish with print(...).",
+    realPython: true,
+    guided: true,
+    editorHint: "Click Run Python, then watch each expression evaluate before its result is assigned.",
     defaultCode: "a = 8\nb = 3\ntotal = a + b\nprint(total)"
   },
   {

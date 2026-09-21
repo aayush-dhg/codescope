@@ -116,7 +116,8 @@ def trace_program(source, stdin='', guided=False):
             scopes.append({'name': frame.f_code.co_name + '() · Local', 'objects': snapshot(frame.f_locals)})
         return scopes
 
-    def add_step(line, event, title, detail, scopes, flow, bounded=True, active=None, printed=None, changes=None):
+    def add_step(line, event, title, detail, scopes, flow, bounded=True, active=None, printed=None,
+                 changes=None, expression=None):
         nonlocal snapshot_size
         output = ''.join(captured)
         objects = scopes[-1]['objects']
@@ -135,6 +136,8 @@ def trace_program(source, stdin='', guided=False):
             step['visual']['printedValues'] = [{'value': preview(printed), 'valueType': 'string', 'typeName': 'output'}]
         if changes:
             step['visual']['changes'] = changes
+        if expression:
+            step['visual'].update(expression)
         snapshot_size += len(json.dumps(step))
         if bounded and (len(steps) >= 500 or snapshot_size > 2_000_000):
             raise TraceLimit('Trace limit reached (500 events or 2 MB of snapshots). Try a smaller example.')
@@ -144,7 +147,7 @@ def trace_program(source, stdin='', guided=False):
         record = pending.pop(id(frame), None)
         if record is None:
             return
-        line, before, reads, is_print = record
+        line, before, reads, is_print, expression_info = record
         scopes = scopes_for(frame)
         current = {obj['name']: obj for obj in scopes[-1]['objects']}
         changed = [name for name in current if current[name] != before.get(name)]
@@ -156,6 +159,22 @@ def trace_program(source, stdin='', guided=False):
                      [preview(output_delta), '→', 'print()', '→', 'Console'],
                      active=reads, printed=output_delta)
         elif changed or removed:
+            if expression_info and expression_info['target'] in current:
+                result = current[expression_info['target']]['value']
+                inputs = expression_info['inputs']
+                input_text = ', '.join('%s = %s' % item for item in inputs.items())
+                detail = ('Python reads %s. ' % input_text if input_text else '')
+                detail += '%s evaluates to %s.' % (expression_info['source'], result)
+                expression_scopes = [dict(scope) for scope in scopes]
+                expression_scopes[-1]['objects'] = list(before.values())
+                flow = ['%s = %s' % item for item in inputs.items()]
+                flow += [expression_info['source'], '→', result]
+                add_step(line, 'expression_evaluated', 'Evaluate expression', detail,
+                         expression_scopes, flow, active=list(inputs), expression={
+                             'expression': expression_info['source'],
+                             'inputs': inputs,
+                             'result': result,
+                         })
             descriptions = [('%s changes from %s to %s.' % (name, before[name]['value'], current[name]['value'])
                              if name in before else '%s is created with %s.' % (name, current[name]['value']))
                             for name in changed]
@@ -198,7 +217,30 @@ def trace_program(source, stdin='', guided=False):
                             and frame.f_locals.get('print', frame.f_globals.get('print', builtins.print)) is builtins.print)
                 reads = [arg.id for arg in node.value.args if isinstance(arg, ast.Name)] if is_print else []
                 before = {obj['name']: obj for obj in snapshot(frame.f_locals)}
-                pending[id(frame)] = (last_line, before, reads, is_print)
+                expression_info = None
+                value = (node.value if isinstance(node, (ast.Assign, ast.AnnAssign)) else None)
+                target = None
+                if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                    target = node.targets[0].id
+                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+                    target = node.target.id
+                if target and value is not None and any(isinstance(part, ast.BinOp) for part in ast.walk(value)):
+                    names = []
+                    for part in ast.walk(value):
+                        if isinstance(part, ast.Name) and isinstance(part.ctx, ast.Load) and part.id not in names:
+                            names.append(part.id)
+                    inputs = {}
+                    for name in names:
+                        if name in frame.f_locals:
+                            inputs[name] = preview(frame.f_locals[name])
+                        elif name in frame.f_globals:
+                            inputs[name] = preview(frame.f_globals[name])
+                    expression_info = {
+                        'target': target,
+                        'source': ast.get_source_segment(source, value) or '<expression>',
+                        'inputs': inputs,
+                    }
+                pending[id(frame)] = (last_line, before, reads, is_print, expression_info)
                 return trace
             text = lines[last_line - 1].strip() if 0 < last_line <= len(lines) else ''
             add_step(last_line, 'line', 'Before line %d' % last_line,
