@@ -117,7 +117,7 @@ def trace_program(source, stdin='', guided=False):
         return scopes
 
     def add_step(line, event, title, detail, scopes, flow, bounded=True, active=None, printed=None,
-                 changes=None, expression=None):
+                 changes=None, expression=None, metadata=None):
         nonlocal snapshot_size
         output = ''.join(captured)
         objects = scopes[-1]['objects']
@@ -138,6 +138,8 @@ def trace_program(source, stdin='', guided=False):
             step['visual']['changes'] = changes
         if expression:
             step['visual'].update(expression)
+        if metadata:
+            step['visual'].update(metadata)
         snapshot_size += len(json.dumps(step))
         if bounded and (len(steps) >= 500 or snapshot_size > 2_000_000):
             raise TraceLimit('Trace limit reached (500 events or 2 MB of snapshots). Try a smaller example.')
@@ -147,13 +149,20 @@ def trace_program(source, stdin='', guided=False):
         record = pending.pop(id(frame), None)
         if record is None:
             return
-        line, before, reads, is_print, expression_info = record
+        line, before, reads, is_print, expression_info, function_definition = record
         scopes = scopes_for(frame)
         current = {obj['name']: obj for obj in scopes[-1]['objects']}
         changed = [name for name in current if current[name] != before.get(name)]
         removed = [name for name in before if name not in current]
         output_delta = ''.join(written.pop(id(frame), []))
-        if is_print and output_delta:
+        if function_definition and function_definition['name'] in current:
+            signature = '%s(%s)' % (function_definition['name'], ', '.join(function_definition['parameters']))
+            detail = 'Python defines %s. Its body will run only when the function is called.' % signature
+            add_step(line, 'function_defined', 'Define ' + signature, detail, scopes,
+                     [signature, '→', 'Ready to call'], active=[function_definition['name']],
+                     metadata={'functionName': function_definition['name'],
+                               'parameters': function_definition['parameters']})
+        elif is_print and output_delta:
             detail = 'print() reads its arguments and writes %s to the console.' % preview(output_delta)
             add_step(line, 'variables_read', 'Values sent to print()', detail, scopes,
                      [preview(output_delta), '→', 'print()', '→', 'Console'],
@@ -210,7 +219,13 @@ def trace_program(source, stdin='', guided=False):
         if event == 'line':
             nodes = statements.get(last_line, [])
             simple = (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Expr, ast.Delete, ast.Import, ast.ImportFrom, ast.Pass)
-            if guided and nodes and all(isinstance(node, simple) and node.end_lineno == last_line for node in nodes):
+            is_definition = (len(nodes) == 1 and isinstance(nodes[0], (ast.FunctionDef, ast.AsyncFunctionDef)))
+            is_return = (len(nodes) == 1 and isinstance(nodes[0], ast.Return))
+            if guided and is_return:
+                # The return event below contains the actual value, so avoid a redundant before-line step.
+                return trace
+            if guided and nodes and (is_definition or
+                                     all(isinstance(node, simple) and node.end_lineno == last_line for node in nodes)):
                 node = nodes[0]
                 is_print = (len(nodes) == 1 and isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
                             and isinstance(node.value.func, ast.Name) and node.value.func.id == 'print'
@@ -218,6 +233,13 @@ def trace_program(source, stdin='', guided=False):
                 reads = [arg.id for arg in node.value.args if isinstance(arg, ast.Name)] if is_print else []
                 before = {obj['name']: obj for obj in snapshot(frame.f_locals)}
                 expression_info = None
+                function_definition = None
+                if is_definition:
+                    function_definition = {
+                        'name': node.name,
+                        'parameters': [argument.arg for argument in
+                                       (node.args.posonlyargs + node.args.args + node.args.kwonlyargs)],
+                    }
                 value = (node.value if isinstance(node, (ast.Assign, ast.AnnAssign)) else None)
                 target = None
                 if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
@@ -240,21 +262,39 @@ def trace_program(source, stdin='', guided=False):
                         'source': ast.get_source_segment(source, value) or '<expression>',
                         'inputs': inputs,
                     }
-                pending[id(frame)] = (last_line, before, reads, is_print, expression_info)
+                pending[id(frame)] = (last_line, before, reads, is_print, expression_info, function_definition)
                 return trace
             text = lines[last_line - 1].strip() if 0 < last_line <= len(lines) else ''
             add_step(last_line, 'line', 'Before line %d' % last_line,
                      'About to execute line %d. Variables and output show the state before this line.' % last_line,
                      scopes_for(frame), [text[:240]])
         elif event == 'call' and frame.f_code.co_name != '<module>':
-            add_step(last_line, 'call', 'Enter ' + frame.f_code.co_name,
-                     'Entering or resuming this Python frame. Its current locals are shown below.',
-                     scopes_for(frame), [frame.f_code.co_name, '→', 'Local frame'])
+            scopes = scopes_for(frame)
+            bindings = scopes[-1]['objects']
+            binding_text = ', '.join('%s to %s' % (item['value'], item['name']) for item in bindings)
+            detail = 'Python creates a local frame for %s().' % frame.f_code.co_name
+            if binding_text:
+                detail += ' It binds ' + binding_text + '.'
+            flow = []
+            for item in bindings:
+                flow.extend([item['value'], '→', item['name']])
+            add_step(last_line, 'function_called', 'Call ' + frame.f_code.co_name + '()', detail,
+                     scopes, flow or [frame.f_code.co_name + '()', '→', 'Local frame'],
+                     active=[item['name'] for item in bindings], metadata={
+                         'functionName': frame.f_code.co_name,
+                         'bindings': bindings,
+                         'callDepth': len(scopes) - 1,
+                     })
         elif event == 'return' and frame.f_code.co_name != '<module>':
             # Python also emits return events when a generator yields or an exception unwinds.
-            add_step(last_line, 'return', 'Leave ' + frame.f_code.co_name,
-                     'This frame returns, yields, or unwinds. The reported value is ' + preview(arg) + '.',
-                     scopes_for(frame), [frame.f_code.co_name, '→', preview(arg)])
+            returned = snapshot({'returnValue': arg})[0]
+            add_step(last_line, 'function_returned', 'Return from ' + frame.f_code.co_name + '()',
+                     '%s() returns %s to its caller.' % (frame.f_code.co_name, returned['value']),
+                     scopes_for(frame), [frame.f_code.co_name + '()', 'returns', returned['value']],
+                     active=[], metadata={
+                         'functionName': frame.f_code.co_name,
+                         'returnedValue': returned,
+                     })
         elif event == 'exception':
             add_step(last_line, 'exception', 'Exception raised',
                      arg[0].__name__ + ' raised here; a surrounding handler may catch it.',

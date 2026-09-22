@@ -55,11 +55,12 @@ const topics = [
   {
     id: "function",
     category: "FUNCTIONS",
-    title: "Functions",
-    description: "See arguments enter a local frame and a return value reach the caller.",
+    title: "Function Calls & Returns",
+    description: "Watch arguments bind to parameters, a local frame run, and a value return to the caller.",
     editable: true,
-    buildSteps: source => PythonLessons.build(source, "function"),
-    editorHint: "Edit parameters, arguments, and the function body. Supports positional calls and return; recursion and default arguments are not supported.",
+    realPython: true,
+    guided: true,
+    editorHint: "Click Run Python, then follow the function definition, call frame, parameter bindings, and returned value.",
     defaultCode: "def add(a, b):\n    result = a + b\n    return result\n\nanswer = add(3, 4)\nprint(answer)"
   },
   {
@@ -238,10 +239,36 @@ function renderVariableChanges(visual) {
   objectView.appendChild(changes);
 }
 
+function renderCallStack(visual) {
+  if (!visual.scopes || visual.scopes.length < 2) return;
+
+  const stack = document.createElement("nav");
+  stack.className = "call-stack";
+  stack.setAttribute("aria-label", "Active call stack");
+
+  visual.scopes.forEach((scope, index) => {
+    if (index) {
+      const arrow = document.createElement("span");
+      arrow.className = "call-stack-arrow";
+      arrow.textContent = "→";
+      arrow.setAttribute("aria-hidden", "true");
+      stack.appendChild(arrow);
+    }
+    const frame = document.createElement("span");
+    frame.className = "call-stack-frame" + (index === visual.scopes.length - 1 ? " is-active" : "");
+    frame.textContent = scope.name.replace(" · Local", "");
+    stack.appendChild(frame);
+  });
+
+  objectView.appendChild(stack);
+}
+
 function renderLessonVisual(visual) {
   objectViewBlock.hidden = false;
   objectViewTitle.textContent = visual.title;
   visualEventBadge.textContent = visual.event.replaceAll("_", " ");
+
+  renderCallStack(visual);
 
   const flow = document.createElement("div");
   flow.className = "lesson-flow";

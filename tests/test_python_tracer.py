@@ -66,6 +66,24 @@ class PythonTracerTests(unittest.TestCase):
         assignment = next(step for step in result['steps'] if step['line'] == 4 and step['visual']['event'] == 'variable_created')
         self.assertEqual(assignment['variables']['x'], '4')
 
+    def test_guided_function_definition_call_bindings_and_return(self):
+        result = run('def add(a, b):\n    result = a + b\n    return result\n\nanswer = add(3, 4)', guided=True)
+        self.assertIsNone(result['error'])
+        events = [step['visual']['event'] for step in result['steps']]
+        self.assertEqual(events, [
+            'function_defined', 'function_called', 'expression_evaluated',
+            'variable_created', 'function_returned', 'variable_created', 'complete'
+        ])
+        defined, called = result['steps'][:2]
+        returned = result['steps'][4]
+        self.assertEqual(defined['visual']['parameters'], ['a', 'b'])
+        self.assertEqual([(item['name'], item['value']) for item in called['visual']['bindings']],
+                         [('a', '3'), ('b', '4')])
+        self.assertEqual(called['visual']['callDepth'], 1)
+        self.assertEqual(returned['line'], 3)
+        self.assertEqual(returned['visual']['returnedValue']['value'], '7')
+        self.assertEqual(result['steps'][5]['variables']['answer'], '7')
+
     def test_guided_shadowed_print_multiline_and_loops(self):
         result = run('print = lambda x: x\ny = print(2)\nvalues = [\n    1,\n    2\n]\nfor n in values:\n    y += n', guided=True)
         self.assertIsNone(result['error'])

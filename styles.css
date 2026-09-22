@@ -951,6 +951,42 @@ textarea {
 }
 
 /* Each execution event animates its operands and result in reading order. */
+.call-stack {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding: 9px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+
+.call-stack-frame {
+  padding: 6px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #64748b;
+  font: 700 12px Consolas, monospace;
+}
+
+.call-stack-frame.is-active {
+  border-color: #60a5fa;
+  background: #dbeafe;
+  color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+  animation: frame-activates 380ms ease-out both;
+}
+
+.call-stack-arrow {
+  color: #60a5fa;
+  font-weight: 800;
+}
+
 .lesson-flow {
   display: flex;
   flex-wrap: wrap;
@@ -1009,8 +1045,14 @@ textarea {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes frame-activates {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .lesson-flow-token { animation: none; }
+  .lesson-flow-token,
+  .call-stack-frame { animation: none; }
 }
 
 .playground-options {
