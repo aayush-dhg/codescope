@@ -7,6 +7,30 @@ run = TRACE['trace_program']
 
 
 class PythonTracerTests(unittest.TestCase):
+    def test_guided_list_lesson_snapshots(self):
+        result = run('numbers = [2, 4, 6]\nfirst = numbers[0]\nnumbers[1] = 8\nnumbers.append(10)\nlast = numbers.pop()\nprint(numbers)\nprint(first, last)', guided=True)
+        self.assertIsNone(result['error'])
+        lists = [next(obj for obj in step['visual']['objects'] if obj['name'] == 'numbers')
+                 for step in result['steps'][:5]]
+        self.assertEqual([obj['items'] for obj in lists],
+                         [['2', '4', '6'], ['2', '4', '6'], ['2', '8', '6'],
+                          ['2', '8', '6', '10'], ['2', '8', '6']])
+        self.assertEqual(result['steps'][-1]['output'], '[2, 8, 6]\n2 10\n')
+        self.assertEqual(result['steps'][3]['visual']['changes'][0]['from']['length'], 3)
+
+    def test_list_previews_are_bounded_and_handle_cycles(self):
+        result = run('items = list(range(30))\nitems[8] = 99\nempty = []\nempty.append(empty)', guided=True)
+        change = result['steps'][1]['visual']['changes'][0]
+        self.assertEqual(change['to']['items'][8], '99')
+        self.assertEqual(change['from']['items'][8], '8')
+        self.assertEqual(len(change['to']['items']), 12)
+        self.assertEqual(change['to']['length'], 30)
+        self.assertEqual(result['steps'][-1]['visual']['objects'][1]['items'], ['<cycle>'])
+        invalid = run('items = []\nitems.pop()', guided=True)
+        self.assertIn('IndexError', invalid['error'])
+        self.assertFalse(any(s['line'] == 2 and s['visual']['event'] == 'variable_updated'
+                             for s in invalid['steps']))
+
     def test_guided_assignments_reassignment_and_prints(self):
         result = run('x = 5\nx = x + 2\nprint(x)\nprint(x * 3)', guided=True)
         self.assertIsNone(result['error'])

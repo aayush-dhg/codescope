@@ -33,6 +33,17 @@ const topics = [
     defaultCode: "a = 8\nb = 3\ntotal = a + b\nprint(total)"
   },
   {
+    id: "lists",
+    category: "COLLECTIONS",
+    title: "Lists",
+    description: "Explore zero-based indices and watch a list change one step at a time.",
+    editable: true,
+    realPython: true,
+    guided: true,
+    editorHint: "Click Run Python, then step through indexing, item updates, append(), and pop(). List boxes show up to 12 items.",
+    defaultCode: "numbers = [2, 4, 6]\nfirst = numbers[0]\nnumbers[1] = 8\nnumbers.append(10)\nlast = numbers.pop()\nprint(numbers)\nprint(first, last)"
+  },
+  {
     id: "if-statement",
     category: "CONTROL FLOW",
     title: "If Statement",
@@ -193,6 +204,29 @@ function createValueObject(visual, extraClass = "") {
   const valueObject = document.createElement("div");
   valueObject.className = `memory-object ${visual.valueType} ${extraClass}`.trim();
 
+  if (Array.isArray(visual.items)) {
+    valueObject.classList.add("indexed-list");
+    const items = document.createElement("div");
+    items.className = "list-items";
+    visual.items.forEach((item, index) => {
+      const cell = document.createElement("div");
+      cell.className = "list-cell";
+      const label = document.createElement("span");
+      label.className = "list-index";
+      label.textContent = `index ${index}`;
+      const value = document.createElement("span");
+      value.textContent = item;
+      cell.append(label, value);
+      items.appendChild(cell);
+    });
+    const caption = document.createElement("span");
+    caption.className = "memory-object-type";
+    caption.textContent = `list · ${visual.length} items${visual.length > visual.items.length ? ` · first ${visual.items.length} shown` : ""}`;
+    if (!visual.length) items.textContent = "Empty list []";
+    valueObject.append(items, caption);
+    return valueObject;
+  }
+
   const value = document.createElement("span");
   value.className = "memory-object-value";
   value.textContent = visual.value;
@@ -218,6 +252,7 @@ function renderVariableChanges(visual) {
   updates.forEach(change => {
     const transition = document.createElement("div");
     transition.className = "variable-change";
+    if (change.from.items || change.to.items) transition.classList.add("list-change");
 
     const name = document.createElement("span");
     name.className = "variable-change-name";
@@ -227,7 +262,7 @@ function renderVariableChanges(visual) {
 
     const arrow = document.createElement("span");
     arrow.className = "change-arrow";
-    arrow.textContent = "→";
+    arrow.textContent = change.from.items || change.to.items ? "↓" : "→";
     arrow.setAttribute("aria-label", "changes to");
 
     const newValue = createValueObject(change.to, "updated-value");

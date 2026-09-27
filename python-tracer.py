@@ -69,6 +69,10 @@ def snapshot(namespace):
         value_type = 'boolean' if kind is bool else 'number' if kind in (int, float, complex) else 'list' if kind in (list, tuple, dict, set, frozenset) else 'string'
         result.append({'name': name[:120], 'value': preview(value), 'valueType': value_type,
                        'typeName': type.__getattribute__(kind, '__name__')})
+        if kind is list:
+            # Copy bounded previews, never retain mutable user objects or call their repr.
+            result[-1]['items'] = [preview(item, seen={id(value)}) for item in value[:12]]
+            result[-1]['length'] = len(value)
     return result
 
 

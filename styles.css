@@ -1035,6 +1035,45 @@ textarea {
   border: 1px solid #d97706;
 }
 
+.memory-object.indexed-list {
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.list-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.list-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 52px;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid #b45309;
+  border-radius: 6px;
+  background: #fffbeb;
+  overflow-wrap: anywhere;
+}
+
+.list-index {
+  font: 600 10px system-ui, sans-serif;
+  color: #92400e;
+}
+
+.variable-change.list-change {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
 .execution-view {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
