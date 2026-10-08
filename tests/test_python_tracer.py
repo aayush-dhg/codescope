@@ -7,6 +7,72 @@ run = TRACE['trace_program']
 
 
 class PythonTracerTests(unittest.TestCase):
+    def test_dictionary_entries_lookup_updates_and_removal(self):
+        result = run('profile = {"name": "Maya", "score": 80}\nname = profile["name"]\nprofile["score"] = 95\nprofile["city"] = "Dallas"\nremoved = profile.pop("city")\nprint(name, removed)', guided=True)
+        self.assertIsNone(result['error'])
+        profiles = [next(obj for obj in step['visual']['objects'] if obj['name'] == 'profile')
+                    for step in result['steps'][:5]]
+        self.assertEqual(profiles[0]['entries'], [
+            {'key': repr('name'), 'value': repr('Maya')},
+            {'key': repr('score'), 'value': '80'},
+        ])
+        self.assertEqual(profiles[2]['entries'][1]['value'], '95')
+        self.assertEqual([obj['length'] for obj in profiles], [2, 2, 2, 3, 2])
+        self.assertEqual(result['steps'][-1]['output'], 'Maya Dallas\n')
+        self.assertEqual(result['steps'][2]['visual']['changes'][0]['from']['entries'][1]['value'], '80')
+
+    def test_tuples_index_unpack_and_create_new_tuple(self):
+        result = run('point = (3, 4)\nfirst = point[0]\nx, y = point\nnew_point = point + (5,)\nprint(point, first, x, y, new_point)', guided=True)
+        self.assertIsNone(result['error'])
+        objects = {obj['name']: obj for obj in result['steps'][-1]['visual']['objects']}
+        self.assertEqual(objects['point']['typeName'], 'tuple')
+        self.assertEqual(objects['point']['items'], ['3', '4'])
+        self.assertEqual(objects['new_point']['items'], ['3', '4', '5'])
+        self.assertEqual(result['steps'][-1]['output'], '(3, 4) 3 3 4 (3, 4, 5)\n')
+        failed = run('point = (3, 4)\npoint[0] = 9', guided=True)
+        self.assertIn('TypeError', failed['error'])
+        self.assertEqual(failed['steps'][-1]['variables']['point'], '(3, 4)')
+        self.assertFalse(any(s['visual']['event'] == 'variable_updated' for s in failed['steps']))
+
+    def test_sets_uniqueness_membership_noop_and_intersection(self):
+        result = run('colors = {"red", "blue", "red"}\ncolors.add("green")\ncolors.add("red")\nhas_blue = "blue" in colors\ncolors.discard("blue")\nshared = colors & {"red", "yellow"}\nprint(len(colors), has_blue)', guided=True)
+        self.assertIsNone(result['error'])
+        self.assertEqual(result['steps'][0]['visual']['objects'][0]['length'], 2)
+        self.assertEqual(result['steps'][1]['visual']['changes'][0]['to']['length'], 3)
+        self.assertEqual(result['steps'][2]['visual']['event'], 'executed')
+        objects = {obj['name']: obj for obj in result['steps'][-1]['visual']['objects']}
+        self.assertEqual(set(objects['colors']['items']), {repr('red'), repr('green')})
+        self.assertEqual(objects['shared']['items'], [repr('red')])
+        self.assertEqual(result['steps'][-1]['output'], '2 True\n')
+
+    def test_collection_previews_empty_nested_cycles_and_bounds(self):
+        objects = TRACE['snapshot']({'empty_dict': {}, 'empty_tuple': (), 'empty_set': set(),
+                                     'single': (5,), 'frozen': frozenset({1, 2}),
+                                     'large_dict': dict.fromkeys(range(30)),
+                                     'large_tuple': tuple(range(30)), 'large_set': set(range(30))})
+        values = {obj['name']: obj for obj in objects}
+        self.assertEqual(values['empty_dict']['entries'], [])
+        self.assertEqual(values['empty_tuple']['items'], [])
+        self.assertEqual(values['empty_set']['value'], 'set()')
+        self.assertEqual(values['single']['value'], '(5,)')
+        self.assertEqual(values['frozen']['typeName'], 'frozenset')
+        for name in ('large_dict', 'large_tuple', 'large_set'):
+            self.assertEqual(values[name]['length'], 30)
+            self.assertEqual(len(values[name].get('entries', values[name].get('items'))), 12)
+        circular = {}
+        circular['self'] = circular
+        self.assertEqual(TRACE['snapshot']({'data': circular})[0]['entries'][0]['value'], '<cycle>')
+        nested = TRACE['snapshot']({'point': ([1], {'a': 2})})[0]
+        self.assertEqual(nested['items'], ['[1]', "{'a': 2}"])
+
+    def test_collection_errors_preserve_prior_output(self):
+        for source, error in [('data = {}\nprint("before")\ndata["missing"]', 'KeyError'),
+                              ('values = {1, 2}\nprint("before")\nvalues[0]', 'TypeError'),
+                              ('values = set()\nprint("before")\nvalues.add([])', 'TypeError')]:
+            result = run(source, guided=True)
+            self.assertIn(error, result['error'])
+            self.assertEqual(result['steps'][-1]['output'], 'before\n')
+
     def test_guided_list_lesson_snapshots(self):
         result = run('numbers = [2, 4, 6]\nfirst = numbers[0]\nnumbers[1] = 8\nnumbers.append(10)\nlast = numbers.pop()\nprint(numbers)\nprint(first, last)', guided=True)
         self.assertIsNone(result['error'])

@@ -42,7 +42,7 @@ The current prototype includes:
 - Animated variable-to-object memory view for numbers, strings, and booleans
 - Old-to-new value transitions when a variable is reassigned
 - Visual value movement from a variable to `print()`
-- Editable code in all seven lessons
+- Editable code in all ten lessons
 - Animated arithmetic, branch decisions, loop iterations, and function calls
 - Global and local frame visualization in function lessons
 - Execution explanations
@@ -59,6 +59,9 @@ The current prototype includes:
 - Multiple Variables
 - Arithmetic
 - Lists
+- Dictionaries
+- Tuples
+- Sets
 - If Statements
 - For Loops
 - Function Calls & Returns
@@ -68,20 +71,28 @@ The current prototype includes:
 
 **Lists** also uses the real Python runtime and guided playback described below. Its default example covers zero-based indexing, replacing an item, `append()`, and `pop()`. Lists appear as indexed cells with their length; mutations animate the previous and current snapshots. Empty and nested lists are supported. Previews show the first 12 items, with an explicit truncation label for longer lists; changes outside the visible preview may not produce a distinct mutation event. This indexed rendering is shared by all real-Python topics. Click **Run Python** after editing. Python errors preserve earlier successful steps.
 
-- **Variables / Multiple Variables / Arithmetic / Lists / Function Calls & Returns:** real Python via the same worker as the Playground. Use expressions, reassignment, multiple `print()` calls, functions, or other browser-compatible Python. Arithmetic assignments emit a separate expression-evaluation event before the variable is created or updated. Function lessons emit structured definition, call, parameter-binding, local-frame, and return events. Click **Run Python** to generate the timeline; successful runs start at the first step for guided playback.
+**Dictionaries** show key/value cards in insertion order. The example reads a key, updates a value, adds an entry, and removes it with `pop()`. Missing keys produce `KeyError`; use `get()` when a default is appropriate.
+
+**Tuples** show indexed cells with an immutable-slots label. The example reads an index, unpacks values, and creates a new tuple with concatenation. Assigning to a tuple slot produces `TypeError`; a tuple can still contain mutable objects. Use `(5,)` for a one-item tuple.
+
+**Sets** show unique items without indexes. The example demonstrates duplicate removal, `add()`, membership with `in`, `discard()`, and intersection. Re-adding an existing item leaves the state unchanged. Sets have no guaranteed order; item arrangement is for display only. Use `set()` for an empty set, since `{}` is a dictionary.
+
+All collection cards show up to 12 items or entries, label truncation, handle empty/nested values, and preserve bounded snapshots for Previous/Next playback. Changes outside a visible preview may not produce a distinct mutation event.
+
+- **Variables / Multiple Variables / Arithmetic / Lists / Dictionaries / Tuples / Sets / Function Calls & Returns:** real Python via the same worker as the Playground. Use expressions, reassignment, multiple `print()` calls, functions, or other browser-compatible Python. Arithmetic assignments emit a separate expression-evaluation event before the variable is created or updated. Function lessons emit structured definition, call, parameter-binding, local-frame, and return events. Click **Run Python** to generate the timeline; successful runs start at the first step for guided playback.
 - **If Statements:** the above plus `if` / `else`, a single comparison per expression (`== != < > <= >=`), and nested conditions.
 - **For Loops:** the above plus lists and `for item in list` or `for item in range(start, stop, step)`. `range()` is supported directly in loop headers. Empty and descending ranges work.
 - **Function Calls & Returns:** real Python functions, positional and keyword arguments, defaults, local variables, global reads, `return`, implicit `None`, nested calls, and recursion. Active frames appear as a compact call-stack breadcrumb.
 
-Use spaces for indentation. Blank lines and comments retain their original source line numbers. Unsupported syntax and invalid input show a line-specific error; editing invalidates the old playback until **Run Python** (Variables, Multiple Variables, Arithmetic, Lists, and Function Calls & Returns) or **Apply changes** (the other lessons) is clicked.
+Use spaces for indentation. Blank lines and comments retain their original source line numbers. Unsupported syntax and invalid input show a line-specific error; editing invalidates the old playback until **Run Python** (Variables, Multiple Variables, Arithmetic, Lists, Dictionaries, Tuples, Sets, and Function Calls & Returns) or **Apply changes** (the other lessons) is clicked.
 
 If Statements and For Loops still use a teaching subset, not a full Python runtime. In these two lessons, imports, mutation/indexing, `elif`, `while`, and arbitrary built-ins are not supported. Numbers use JavaScript numeric storage and simplified formatting rather than separate Python integer/float objects. Execution is limited to 12,000 source characters, 120 nonempty lines, 100 values per loop, 300 emitted steps, and eight nested blocks, with an additional evaluation-work limit. Failed executions clear the visualization rather than showing partial results.
 
-Variables, Multiple Variables, Arithmetic, Lists, and Function Calls & Returns use the Playground's runtime and limits. Their guided trace shows completed definitions, calls, single-line assignments, returns, and print operations, with memory updates and animated console output. A computed assignment such as `total = x + y` first emits `expression_evaluated`, including its source expression, input values, and result, and then emits the variable creation/update. Compound and multiline statements fall back to explicitly labeled before-line events. Blank lines and comments preserve source positions. Runtime errors retain earlier steps without presenting the failed statement as successful. The line highlight follows playback and clears when code or input is edited.
+Variables, Multiple Variables, Arithmetic, Lists, Dictionaries, Tuples, Sets, and Function Calls & Returns use the Playground's runtime and limits. Their guided trace shows completed definitions, calls, single-line assignments, returns, and print operations, with memory updates and animated console output. A computed assignment such as `total = x + y` first emits `expression_evaluated`, including its source expression, input values, and result, and then emits the variable creation/update. Compound and multiline statements fall back to explicitly labeled before-line events. Blank lines and comments preserve source positions. Runtime errors retain earlier steps without presenting the failed statement as successful. The line highlight follows playback and clears when code or input is edited.
 
 ### Real-Python Playground
 
-Select **Python Playground**, edit the code, and click **Run Python**. It runs CPython through [Pyodide](https://pyodide.org/en/stable/usage/quickstart.html), pinned to version **314.0.7**, in a dedicated module Web Worker. Variables, Multiple Variables, Arithmetic, Lists, and Function Calls & Returns share this engine. The first run downloads the runtime from jsDelivr; loading requires network access. The other two guided lessons do not download Python.
+Select **Python Playground**, edit the code, and click **Run Python**. It runs CPython through [Pyodide](https://pyodide.org/en/stable/usage/quickstart.html), pinned to version **314.0.7**, in a dedicated module Web Worker. Variables, Multiple Variables, Arithmetic, Lists, Dictionaries, Tuples, Sets, and Function Calls & Returns share this engine. The first run downloads the runtime from jsDelivr; loading requires network access. The other two guided lessons do not download Python.
 
 - Supports Python syntax including `while`, `elif`, recursion, comprehensions, indexing/mutation, classes, exception handling, and browser-compatible standard-library imports.
 - Enter answers for `input()` in the optional input box, one per line. Exhausted input raises `EOFError`.
@@ -95,10 +106,10 @@ This does not mean every Python application can run in a browser. Third-party pa
 
 ## Current Architecture
 
-CodeScope currently has two execution paths. If Statements and For Loops use the bounded Python-subset interpreter in `lesson-engine.js`. Variables, Multiple Variables, Arithmetic, Lists, Function Calls & Returns, and the Playground use Pyodide in a Web Worker and produce snapshots through `sys.settrace`. The guided real-Python lessons request structured after-line events; the Playground retains before-line tracing. Both paths emit timeline data for the same visualization layer. The old fixed-pattern variable parsers have been removed.
+CodeScope currently has two execution paths. If Statements and For Loops use the bounded Python-subset interpreter in `lesson-engine.js`. Variables, Multiple Variables, Arithmetic, Lists, Dictionaries, Tuples, Sets, Function Calls & Returns, and the Playground use Pyodide in a Web Worker and produce snapshots through `sys.settrace`. The guided real-Python lessons request structured after-line events; the Playground retains before-line tracing. Both paths emit timeline data for the same visualization layer. The old fixed-pattern variable parsers have been removed.
 
 ```text
-Two Subset Lessons        Variables / Multiple Variables / Arithmetic / Lists / Functions / Playground
+Two Subset Lessons        Variables / Multiple Variables / Arithmetic / Lists / Dictionaries / Tuples / Sets / Functions / Playground
         ↓                                      ↓
 Lesson Interpreter                  Pyodide Worker + sys.settrace
         └──────────────────┬───────────────────┘
@@ -183,7 +194,7 @@ Start a static server (or use VS Code Live Server):
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Variables, Multiple Variables, Arithmetic, Lists, Function Calls & Returns, and the Playground require HTTP/HTTPS for their worker and tracer assets. The two subset lessons can also run directly from `index.html`.
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Variables, Multiple Variables, Arithmetic, Lists, Dictionaries, Tuples, Sets, Function Calls & Returns, and the Playground require HTTP/HTTPS for their worker and tracer assets. The two subset lessons can also run directly from `index.html`.
 
 ## Tests
 
@@ -204,8 +215,8 @@ The [CI workflow](https://github.com/aayush-dhg/codescope/actions/workflows/ci.y
 | Check | Runtime | Coverage |
 | --- | --- | --- |
 | JavaScript checks | Node.js 24 | Syntax checks for four browser scripts and 21 lesson/worker tests |
-| Python tracer (3.12) | Python 3.12 | 18 tracing, snapshot, error, and execution-limit tests |
-| Python tracer (3.14) | Python 3.14 | The same 18 tests on the browser runtime's Python version |
+| Python tracer (3.12) | Python 3.12 | 23 tracing, collection, snapshot, error, and execution-limit tests |
+| Python tracer (3.14) | Python 3.14 | The same 23 tests on the browser runtime's Python version |
 
 The initial integration passed all three jobs in GitHub Actions. The badge above shows the current workflow status. To investigate a failure, open **Actions → CI → the failed run → the failed job** and read the failing step's log. To start a manual check, open **Actions → CI → Run workflow** and select the branch.
 
@@ -236,11 +247,11 @@ GitHub Pages automatically deploys the updated version.
 - [x] If statements
 - [x] For loops
 - [x] Functions
-- [x] Editable code panel in all seven lessons
+- [x] Editable code panel in all ten lessons
 - [x] Lists — editable real Python, indexed items, and mutation playback
-- [ ] Dictionaries
-- [ ] Tuples
-- [ ] Sets
+- [x] Dictionaries — editable key/value lookup and mutation playback
+- [x] Tuples — indexed values, unpacking, and immutable-slot errors
+- [x] Sets — unique values, membership, and set operations
 - [ ] While loops
 - [x] Function parameters and return values (positional arguments)
 - [x] Scope visualization (global and local function frames)
