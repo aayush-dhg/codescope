@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "check": "node --check app.js && node --check lesson-engine.js && node --check playground.js && node --check python-worker.js",
     "test": "node --test tests/*.test.cjs"
   }
 }
