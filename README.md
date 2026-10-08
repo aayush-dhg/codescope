@@ -342,4 +342,4 @@ GitHub: https://github.com/aayush-dhg
 
 ## License
 
-This project is intended to be released under the MIT License.
+This project is released under the MIT License.
