@@ -201,6 +201,14 @@ They cover guided lessons, worker cancellation/timeouts/retries, real-Python tra
 
 The [CI workflow](https://github.com/aayush-dhg/codescope/actions/workflows/ci.yml) runs on every push and pull request, and can be started manually from GitHub Actions. It checks all browser JavaScript files for syntax errors and runs the lesson/worker tests on Node.js 24. Separate jobs run the Python tracer tests on Python 3.12 and 3.14, including the Python version used by the pinned Pyodide runtime.
 
+| Check | Runtime | Coverage |
+| --- | --- | --- |
+| JavaScript checks | Node.js 24 | Syntax checks for four browser scripts and 21 lesson/worker tests |
+| Python tracer (3.12) | Python 3.12 | 18 tracing, snapshot, error, and execution-limit tests |
+| Python tracer (3.14) | Python 3.14 | The same 18 tests on the browser runtime's Python version |
+
+The initial integration passed all three jobs in GitHub Actions. The badge above shows the current workflow status. To investigate a failure, open **Actions → CI → the failed run → the failed job** and read the failing step's log. To start a manual check, open **Actions → CI → Run workflow** and select the branch.
+
 No dependency installation or build step is needed. Jobs have a five-minute timeout, read-only repository permissions, and cancel superseded runs on the same branch or pull request. A failing check reports a regression; blocking merges requires a repository branch rule that makes these checks required. GitHub Pages deployment remains separate from CI. These checks do not replace browser verification of rendering or the Pyodide CDN/Worker path.
 
 ## Deployment
