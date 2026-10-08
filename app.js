@@ -44,6 +44,39 @@ const topics = [
     defaultCode: "numbers = [2, 4, 6]\nfirst = numbers[0]\nnumbers[1] = 8\nnumbers.append(10)\nlast = numbers.pop()\nprint(numbers)\nprint(first, last)"
   },
   {
+    id: "dictionaries",
+    category: "COLLECTIONS",
+    title: "Dictionaries",
+    description: "Look up values by key and watch entries change, appear, and disappear.",
+    editable: true,
+    realPython: true,
+    guided: true,
+    editorHint: "Use keys instead of indexes. Try a lookup, an update, a new key, or pop(). Missing keys raise KeyError; get() can supply a default.",
+    defaultCode: 'profile = {"name": "Maya", "score": 80}\nname = profile["name"]\nprofile["score"] = 95\nprofile["city"] = "Dallas"\nremoved = profile.pop("city")\nprint(profile)\nprint(name, removed)'
+  },
+  {
+    id: "tuples",
+    category: "COLLECTIONS",
+    title: "Tuples",
+    description: "Read ordered values and unpack them into variables. Tuple slots cannot be changed.",
+    editable: true,
+    realPython: true,
+    guided: true,
+    editorHint: "Tuples use zero-based indexes like lists, but their slots are immutable. Try point[0] = 9 to see TypeError. A one-item tuple needs a comma: (5,).",
+    defaultCode: 'point = (3, 4)\nfirst = point[0]\nx, y = point\nnew_point = point + (5,)\nprint(point)\nprint(first, x, y)\nprint(new_point)'
+  },
+  {
+    id: "sets",
+    category: "COLLECTIONS",
+    title: "Sets",
+    description: "See duplicates collapse into unique values, then explore membership and set operations.",
+    editable: true,
+    realPython: true,
+    guided: true,
+    editorHint: "Sets have no indexes or guaranteed order. Try add(), discard(), and in. Use set() for an empty set; {} creates a dictionary. Item placement is only for display.",
+    defaultCode: 'colors = {"red", "blue", "red"}\ncolors.add("green")\ncolors.add("red")\nhas_blue = "blue" in colors\ncolors.discard("blue")\nshared = colors & {"red", "yellow"}\nprint(len(colors), has_blue)\nprint(shared)'
+  },
+  {
     id: "if-statement",
     category: "CONTROL FLOW",
     title: "If Statement",
@@ -204,25 +237,33 @@ function createValueObject(visual, extraClass = "") {
   const valueObject = document.createElement("div");
   valueObject.className = `memory-object ${visual.valueType} ${extraClass}`.trim();
 
-  if (Array.isArray(visual.items)) {
+  if (Array.isArray(visual.items) || Array.isArray(visual.entries)) {
+    const kind = visual.typeName || "list";
+    const isDictionary = kind === "dict";
+    const isSet = kind === "set" || kind === "frozenset";
+    const entries = isDictionary ? visual.entries : visual.items;
     valueObject.classList.add("indexed-list");
+    valueObject.classList.add(`collection-${kind}`);
     const items = document.createElement("div");
     items.className = "list-items";
-    visual.items.forEach((item, index) => {
+    entries.forEach((item, index) => {
       const cell = document.createElement("div");
       cell.className = "list-cell";
       const label = document.createElement("span");
       label.className = "list-index";
-      label.textContent = `index ${index}`;
+      label.textContent = isDictionary ? `key ${item.key}` : isSet ? "item" : `index ${index}`;
       const value = document.createElement("span");
-      value.textContent = item;
+      value.textContent = isDictionary ? item.value : item;
       cell.append(label, value);
       items.appendChild(cell);
     });
     const caption = document.createElement("span");
     caption.className = "memory-object-type";
-    caption.textContent = `list · ${visual.length} items${visual.length > visual.items.length ? ` · first ${visual.items.length} shown` : ""}`;
-    if (!visual.length) items.textContent = "Empty list []";
+    const semantics = kind === "tuple" ? " · immutable slots" : isSet ? " · unique · no indexes" : isDictionary ? " · key → value" : "";
+    const truncated = visual.length > entries.length ? ` · ${entries.length} of ${visual.length} shown` : "";
+    caption.textContent = `${kind} · ${visual.length} ${isDictionary ? "entries" : "items"}${semantics}${truncated}`;
+    const empty = { list: "[]", tuple: "()", dict: "{}", set: "set()", frozenset: "frozenset()" };
+    if (!visual.length) items.textContent = `Empty ${kind} ${empty[kind] || ""}`;
     valueObject.append(items, caption);
     return valueObject;
   }
@@ -252,7 +293,8 @@ function renderVariableChanges(visual) {
   updates.forEach(change => {
     const transition = document.createElement("div");
     transition.className = "variable-change";
-    if (change.from.items || change.to.items) transition.classList.add("list-change");
+    const collectionChange = change.from.items || change.to.items || change.from.entries || change.to.entries;
+    if (collectionChange) transition.classList.add("list-change");
 
     const name = document.createElement("span");
     name.className = "variable-change-name";
@@ -262,7 +304,7 @@ function renderVariableChanges(visual) {
 
     const arrow = document.createElement("span");
     arrow.className = "change-arrow";
-    arrow.textContent = change.from.items || change.to.items ? "↓" : "→";
+    arrow.textContent = collectionChange ? "↓" : "→";
     arrow.setAttribute("aria-label", "changes to");
 
     const newValue = createValueObject(change.to, "updated-value");

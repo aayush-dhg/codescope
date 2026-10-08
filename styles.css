@@ -1068,6 +1068,49 @@ textarea {
   color: #92400e;
 }
 
+.memory-object.collection-dict {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1e3a8a;
+}
+
+.collection-dict .list-cell {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.memory-object.collection-tuple {
+  background: #ede9fe;
+  border-color: #7c3aed;
+  color: #4c1d95;
+}
+
+.collection-tuple .list-cell {
+  background: #f5f3ff;
+  border-color: #c4b5fd;
+}
+
+.memory-object.collection-set,
+.memory-object.collection-frozenset {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+}
+
+.collection-set .list-cell,
+.collection-frozenset .list-cell {
+  background: #f0fdf4;
+  border-color: #86efac;
+  border-radius: 20px;
+}
+
+.collection-dict .list-index,
+.collection-tuple .list-index,
+.collection-set .list-index,
+.collection-frozenset .list-index {
+  color: inherit;
+}
+
 .variable-change.list-change {
   width: 100%;
   grid-template-columns: minmax(0, 1fr);
